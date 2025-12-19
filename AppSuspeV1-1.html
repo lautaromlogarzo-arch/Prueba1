@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Suspensión FSAE 3D - Avanzado</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        :root { --primary: #d62828; --dark: #003049; --light: #fdf0d5; --accent: #669bbc; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: #edf2f4; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Layout */
+        .sidebar { width: 420px; background: #fff; overflow-y: auto; padding: 20px; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 10; display: flex; flex-direction: column; border-right: 1px solid #ddd; }
+        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .viz-container { flex: 1; position: relative; background: #dae3e7; } /* Fondo gris azulado para 3D */
+        
+        /* Panel Inferior de Resultados */
+        .results-panel { 
+            height: 300px; 
+            background: var(--dark); 
+            color: #eee; 
+            overflow-y: auto; 
+            padding: 15px 25px; 
+            font-family: 'Consolas', 'Courier New', monospace; 
+            font-size: 0.9rem;
+            border-top: 4px solid var(--primary);
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.2);
+        }
+
+        /* Estilos UI */
+        h2 { color: var(--dark); margin-top: 0; font-size: 1.4rem; border-bottom: 3px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        h4 { margin: 15px 0 8px 0; color: var(--accent); font-size: 0.9rem; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #eee; padding-bottom: 4px;}
+        
+        .section-header { font-weight: bold; color: var(--dark); margin-top: 15px; margin-bottom: 5px; display: block; }
+
+        .input-group { background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 12px; }
+        
+        .row { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+        .row label { flex: 1.4; font-size: 0.85rem; font-weight: 600; color: #444; }
+        .row input, .row select { flex: 1; padding: 6px 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; width: 100%; transition: border-color 0.2s; }
+        .row input:focus { border-color: var(--accent); outline: none; }
+        
+        .coord-inputs { display: flex; gap: 4px; flex: 2; }
+        .coord-inputs input { width: 100%; text-align: center; font-family: monospace; font-weight: 500; }
+
+        /* Botón Principal */
+        .calc-button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; cursor: pointer; font-size: 1.1rem; font-weight: 800; border-radius: 6px; transition: all 0.2s; margin-top: 20px; box-shadow: 0 4px 6px rgba(214, 40, 40, 0.3); text-transform: uppercase; letter-spacing: 1px; }
+        .calc-button:hover { background: #b51717; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(214, 40, 40, 0.4); }
+        .calc-button:active { transform: translateY(0); }
+
+        /* Tabs */
+        .tabs { display: flex; background: #e9ecef; border-radius: 6px; padding: 4px; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: 700; color: #666; border-radius: 4px; transition: 0.2s; text-transform: uppercase; font-size: 0.9rem; }
+        .tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* Tablas de Resultados */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; }
+        th { text-align: left; color: #a8dadc; border-bottom: 2px solid #457b9d; padding: 8px; font-weight: 600; }
+        td { padding: 8px; border-bottom: 1px solid #365b77; }
+        tr:last-child td { border-bottom: none; }
+        .danger { color: #ff4d4d; font-weight: bold; }
+        .warning { color: #ffd166; font-weight: bold; }
+        .ok { color: #06d6a0; font-weight: bold; }
+        .result-block h3 { color: var(--primary); margin-bottom: 5px; border-bottom: 1px solid #457b9d; }
+        .result-footer { font-size: 0.85em; margin-top:8px; color:#aaa; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;}
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #999; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Simulador FSAE</h2>
+
+        <div class="input-group" style="background: #e3f2fd; border-color: #bbdefb;">
+            <div class="row">
+                <label style="font-weight: 800; color: var(--dark);">VISUALIZACIÓN:</label>
+                <select id="viewMode" onchange="calculateAndPlot()" style="flex:1.5; font-weight:bold;">
+                    <option value="both" selected>🚗 Vehículo Completo</option>
+                    <option value="front">Solo Delantera</option>
+                    <option value="rear">Solo Trasera</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('front')">Geometría Delantera</div>
+            <div class="tab" onclick="switchTab('rear')">Geometría Trasera</div>
+        </div>
+
+        <div id="active-inputs-container" class="input-group"></div>
+
+        <span class="section-header">PARÁMETROS GLOBALES DEL VEHÍCULO</span>
+        <div class="input-group">
+            <h4>Maniobra y Fricción</h4>
+            <div class="row"><label>G Frenado (Front):</label><input type="number" id="g_braking" value="1.7" step="0.1"></div>
+            <div class="row"><label>G Aceleración (Rear):</label><input type="number" id="g_accel" value="1.2" step="0.1"></div>
+            <div class="row"><label>G Lateral (Curva):</label><input type="number" id="g_cornering" value="2.0" step="0.1"></div>
+            <div class="row"><label>G Bump (Vertical):</label><input type="number" id="g_bump" value="3.0" step="0.1"></div>
+            <div class="row"><label>Mu Longitudinal:</label><input type="number" id="mu_long" value="1.0" step="0.1"></div>
+            <div class="row"><label>Mu Lateral:</label><input type="number" id="mu_lat" value="1.0" step="0.1"></div>
+
+            <h4>Dimensiones y CG</h4>
+            <div class="row"><label>Wheelbase (mm):</label><input type="number" id="wheelbase" value="1650"></div>
+            <div class="row"><label>Track Width Front (mm):</label><input type="number" id="track_front" value="1200"></div>
+            <div class="row"><label>Altura CG (mm):</label><input type="number" id="cg_height" value="350"></div>
+
+            <h4>Masas y Distribución</h4>
+            <div class="row"><label>Masa Vehículo (kg):</label><input type="number" id="m_vehiculo" value="300"></div>
+            <div class="row"><label>Masa Piloto (kg):</label><input type="number" id="m_piloto" value="65"></div>
+            <div class="row"><label>% Peso Delantero (0.0-1.0):</label><input type="number" id="weight_dist_front" value="0.4" step="0.01"></div>
+            <div class="row"><label>Masa No Susp. Del. (Esq, kg):</label><input type="number" id="unsprung_f" value="28"></div>
+            <div class="row"><label>Masa No Susp. Tras. (Esq, kg):</label><input type="number" id="unsprung_r" value="28"></div>
+        </div>
+
+        <span class="section-header">MATERIALES Y VISUALIZACIÓN</span>
+        <div class="input-group">
+            <h4>Tubos de Suspensión (SAE 1026)</h4>
+            <div class="row"><label>Fluencia (MPa):</label><input type="number" id="mat_yield" value="310"></div>
+            <div class="row"><label>Módulo Young (GPa):</label><input type="number" id="mat_E" value="210"></div>
+            <div class="row"><label>OD Tubo (mm):</label><input type="number" id="tube_od" value="20"></div>
+            <div class="row"><label>ID Tubo (mm):</label><input type="number" id="tube_id" value="0"></div>
+            <div class="row"><label>FS Objetivo:</label><input type="number" id="sf_target" value="3.5" step="0.1"></div>
+
+            <h4>Configuración de Rueda (Visual)</h4>
+            <div class="row"><label>OD Neumático (mm):</label><input type="number" id="tire_od" value="520"></div>
+            <div class="row"><label>Ancho Neumático (mm):</label><input type="number" id="tire_width" value="205"></div>
+            <div class="row"><label>OD Llanta (mm):</label><input type="number" id="rim_od" value="330"></div>
+            <div class="row box-highlight"><label style="color:var(--primary);">Wheel Offset (mm):</label><input type="number" id="wheel_offset" value="40" style="border-color:var(--primary); font-weight:bold;"></div>
+             <div style="font-size:0.8em; color:#666; margin-bottom:10px;">(Offset positivo mueve la rueda hacia afuera del centro)</div>
+        </div>
+
+        <span class="section-header">TREN DE POTENCIA (SOLO TRASERA)</span>
+        <div class="input-group">
+             <h4>Datos para Palier</h4>
+            <div class="row"><label>Torque Max Motor (Nm):</label><input type="number" id="eng_torque" value="120"></div>
+            <div class="row"><label>Reducción Total:</label><input type="number" id="gear_ratio" value="4.0" step="0.1"></div>
+            <div class="row"><label>Eficiencia Transmisión:</label><input type="number" id="drivetrain_eff" value="0.95" step="0.01"></div>
+            <div class="row"><label>OD Palier (mm):</label><input type="number" id="palier_od" value="22.0"></div>
+            <div class="row"><label>ID Palier (mm):</label><input type="number" id="palier_id" value="0.0"></div>
+        </div>
+
+
+        <button class="calc-button" onclick="calculateAndPlot()">⚡ EJECUTAR ANÁLISIS</button>
+        <br><br>
+    </div>
+
+    <div class="main-content">
+        <div id="plot3d" class="viz-container"></div>
+        <div class="results-panel">
+            <div id="results-output">
+                <div style="text-align: center; padding-top: 100px; color: #aaa;">
+                    Presiona "EJECUTAR ANÁLISIS" para comenzar la simulación.
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ==========================================
+    // 1. GESTIÓN DE DATOS Y ESTADO
+    // ==========================================
+    let editingAxle = 'front';
+
+    // Base de datos de hardpoints (COORDENADAS LOCALES)
+    // Para la trasera, usamos tus coordenadas RESTANDO el wheelbase (1.65) a X para que sean locales.
+    const vehicleData = {
+        front: {
+            tire_center: [0.0, 0.58675, 0.2525],
+            lwb_f: [-0.07990, 0.26455, 0.12523], lwb_r: [0.07990, 0.26455, 0.12523], lwb_u: [0.0, 0.58434, 0.14852],
+            uwb_f: [-0.05435, 0.24249, 0.28878], uwb_r: [0.093, 0.24249, 0.27284], uwb_u: [0.0301, 0.55383, 0.35648],
+            push_c: [0.0, 0.2, 0.5], push_u: [0.0, 0.5, 0.25],
+            tie_c: [-0.100, 0.270, 0.160], tie_u: [-0.100, 0.520, 0.160],
+            p_trail_mm: 30.0
+        },
+        rear: {
+            // Coordenadas locales (wb_shift restado a tus inputs originales)
+            tire_center: [0.0, 0.58675, 0.2525],
+            lwb_f: [-0.07990, 0.26455, 0.12523], lwb_r: [0.07990, 0.26455, 0.12523], lwb_u: [0.0, 0.58434, 0.14852],
+            uwb_f: [-0.05435, 0.24249, 0.28878], uwb_r: [0.093, 0.24249, 0.27284], uwb_u: [0.0301, 0.55383, 0.35648],
+            push_c: [0.0, 0.2, 0.5], push_u: [0.0, 0.5, 0.25],
+            tie_c: [-0.100, 0.270, 0.160], tie_u: [-0.100, 0.520, 0.160],
+            p_trail_mm: 30.0
+        }
+    };
+
+    function switchTab(axle) {
+        editingAxle = axle;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        renderInputs();
+    }
+
+    function renderInputs() {
+        const d = vehicleData[editingAxle];
+        const container = document.getElementById('active-inputs-container');
+        container.innerHTML = `<h4>Hardpoints ${editingAxle.toUpperCase()} [X, Y, Z] (Local)</h4>`;
+        
+        const points = {
+            'tire_center': 'Centro Rueda (Hub)',
+            'lwb_f': 'LWB Chasis Front', 'lwb_r': 'LWB Chasis Rear', 'lwb_u': 'LWB Upright',
+            'uwb_f': 'UWB Chasis Front', 'uwb_r': 'UWB Chasis Rear', 'uwb_u': 'UWB Upright',
+            'push_c': 'Pushrod Chasis', 'push_u': 'Pushrod Upright',
+            'tie_c': editingAxle==='front'?'Tie Rod Chasis':'Toe Link Chasis', 
+            'tie_u': editingAxle==='front'?'Tie Rod Upright':'Toe Link Upright'
+        };
+
+        for (const [key, label] of Object.entries(points)) {
+            const val = d[key];
+            container.innerHTML += `
+                <div class="row">
+                    <label>${label}</label>
+                    <div class="coord-inputs">
+                        <input type="number" id="${key}_x" value="${val[0]}" step="0.005" onchange="updateData('${key}', 0, this.value)">
+                        <input type="number" id="${key}_y" value="${val[1]}" step="0.005" onchange="updateData('${key}', 1, this.value)">
+                        <input type="number" id="${key}_z" value="${val[2]}" step="0.005" onchange="updateData('${key}', 2, this.value)">
+                    </div>
+                </div>`;
+        }
+        // Input especial para Pneumatic Trail
+        container.innerHTML += `
+            <div class="row" style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                <label>Pneumatic Trail (mm):</label>
+                <input type="number" id="p_trail_mm" value="${d.p_trail_mm}" onchange="updateScalar('p_trail_mm', this.value)">
+            </div>`;
+    }
+
+    function updateData(key, index, value) { vehicleData[editingAxle][key][index] = parseFloat(value); }
+    function updateScalar(key, value) { vehicleData[editingAxle][key] = parseFloat(value); }
+
+
+    // ==========================================
+    // 2. MOTOR MATEMÁTICO (SOLVER & FÍSICA)
+    // ==========================================
+    // Función auxiliar para leer inputs del DOM de forma segura
+    const val = (id) => parseFloat(document.getElementById(id).value) || 0;
+
+    const sub = (v1, v2) => [v1[0]-v2[0], v1[1]-v2[1], v1[2]-v2[2]];
+    const norm = (v) => Math.sqrt(v[0]**2 + v[1]**2 + v[2]**2);
+    const normalize = (v) => { const n = norm(v); return n===0 ? [0,0,0] : [v[0]/n, v[1]/n, v[2]/n]; };
+    const cross = (a, b) => [ a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0] ];
+
+    // Solver Gaussiano simple para Ax=B (6x6)
+    function solveLinearSystem(A, B) {
+        let n = B.length; let M = A.map(row => [...row]); let x = [...B];
+        for (let i = 0; i < n; i++) {
+            let maxEl = Math.abs(M[i][i]), maxRow = i;
+            for (let k = i + 1; k < n; k++) { if (Math.abs(M[k][i]) > maxEl) { maxEl = Math.abs(M[k][i]); maxRow = k; } }
+            for (let k = i; k < n; k++) { let tmp = M[maxRow][k]; M[maxRow][k] = M[i][k]; M[i][k] = tmp; }
+            let tmp = x[maxRow]; x[maxRow] = x[i]; x[i] = tmp;
+            for (let k = i + 1; k < n; k++) {
+                let c = -M[k][i] / M[i][i];
+                for (let j = i; j < n; j++) { if (i === j) M[k][j] = 0; else M[k][j] += c * M[i][j]; }
+                x[k] += c * x[i];
+            }
+        }
+        let res = new Array(n).fill(0);
+        for (let i = n - 1; i > -1; i--) {
+            let sum = 0; for (let j = i + 1; j < n; j++) sum += M[i][j] * res[j];
+            res[i] = (x[i] - sum) / M[i][i];
+        }
+        return res;
+    }
+
+    function calculateAxle(axleType, data, globalInputs) {
+        const g = 9.81;
+        const tire_c = data.tire_center;
+
+        // Vectores Unitarios (Dirección fuerza links)
+        const v_lwb_f = normalize(sub(data.lwb_u, data.lwb_f));
+        const v_lwb_r = normalize(sub(data.lwb_u, data.lwb_r));
+        const v_uwb_f = normalize(sub(data.uwb_u, data.uwb_f));
+        const v_uwb_r = normalize(sub(data.uwb_u, data.uwb_r));
+        const v_push  = normalize(sub(data.push_u, data.push_c));
+        const v_tie   = normalize(sub(data.tie_u, data.tie_c));
+
+        // --- CÁLCULO DE MASAS Y TRANSFERENCIAS ---
+        const total_mass = globalInputs.m_vehiculo + globalInputs.m_piloto;
+        const unsprung_mass_total = (2 * globalInputs.unsprung_f) + (2 * globalInputs.unsprung_r);
+        const suspended_mass_total = total_mass - unsprung_mass_total;
+
+        let mass_corner_dyn = 0;
+
+        if (axleType === 'front') {
+            const suspended_front = suspended_mass_total * globalInputs.weight_dist_front;
+            const static_front_corner = (suspended_front / 2) + globalInputs.unsprung_f;
+            // Transferencia Longitudinal (Frenado - Carga va adelante)
+            const trans_long = (total_mass * globalInputs.g_braking * globalInputs.cg_height) / globalInputs.wheelbase;
+            const dyn_front_axle = (static_front_corner * 2) + trans_long;
+            // Transferencia Lateral (Curva)
+            const trans_lat = (dyn_front_axle * globalInputs.g_cornering * globalInputs.cg_height) / globalInputs.track_front;
+            mass_corner_dyn = (dyn_front_axle / 2) + trans_lat;
+        } else {
+            const suspended_rear = suspended_mass_total * (1 - globalInputs.weight_dist_front);
+            const static_rear_corner = (suspended_rear / 2) + globalInputs.unsprung_r;
+            // Transferencia Longitudinal (Aceleración - Carga va atrás)
+            const trans_long = (total_mass * globalInputs.g_accel * globalInputs.cg_height) / globalInputs.wheelbase;
+            const dyn_rear_axle = (static_rear_corner * 2) + trans_long;
+            // Transferencia Lateral (Curva - usaremos track delantero como ref si no hay trasero)
+             const trans_lat = (dyn_rear_axle * globalInputs.g_cornering * globalInputs.cg_height) / globalInputs.track_front;
+            mass_corner_dyn = (dyn_rear_axle / 2) + trans_lat;
+        }
+
+        // --- FUERZAS EN PARCHE DE CONTACTO ---
+        const Fz_dyn = mass_corner_dyn * g * globalInputs.g_bump;
+        
+        // Limitadas por fricción (mu)
+        const Fx_req = mass_corner_dyn * g * (axleType === 'front' ? globalInputs.g_braking : globalInputs.g_accel);
+        const Fy_req = mass_corner_dyn * g * globalInputs.g_cornering;
+
+        let Fx_dyn = Math.min(Fx_req, Fz_dyn * globalInputs.mu_long);
+        if (axleType === 'front') Fx_dyn *= -1; // Frenado es negativo en X
+        
+        const Fy_dyn = Math.min(Fy_req, Fz_dyn * globalInputs.mu_lat); // Lateral positivo (curva a derecha carga izq)
+
+        const F_ground = [Fx_dyn, Fy_dyn, Fz_dyn];
+
+        // --- MOMENTOS ---
+        // Aplicar Pneumatic Trail
+        const p_trail_m = data.p_trail_mm / 1000.0;
+        const cp_eff = [tire_c[0] - p_trail_m, tire_c[1], 0.0]; // Z=0 es suelo
+        
+        const r_ground = sub(cp_eff, tire_c);
+        const M_ground = cross(r_ground, F_ground);
+
+        // CORRECCIÓN TRASERA: Eliminar torque de tracción en el portamaza
+        let torqueRemoved = 0;
+        if (axleType === 'rear') {
+            torqueRemoved = M_ground[1]; // Momento en Y
+            M_ground[1] = 0;
+        }
+
+        // --- MATRIZ DEL SISTEMA ---
+        const r_lwb = sub(data.lwb_u, tire_c);
+        const r_uwb = sub(data.uwb_u, tire_c);
+        const r_push = sub(data.push_u, tire_c);
+        const r_tie = sub(data.tie_u, tire_c);
+
+        const m_lwb_f = cross(r_lwb, v_lwb_f);
+        const m_lwb_r = cross(r_lwb, v_lwb_r);
+        const m_uwb_f = cross(r_uwb, v_uwb_f);
+        const m_uwb_r = cross(r_uwb, v_uwb_r);
+        const m_push = cross(r_push, v_push);
+        const m_tie = cross(r_tie, v_tie);
+
+        const A = [
+            [v_lwb_f[0], v_lwb_r[0], v_uwb_f[0], v_uwb_r[0], v_push[0], v_tie[0]],
+            [v_lwb_f[1], v_lwb_r[1], v_uwb_f[1], v_uwb_r[1], v_push[1], v_tie[1]],
+            [v_lwb_f[2], v_lwb_r[2], v_uwb_f[2], v_uwb_r[2], v_push[2], v_tie[2]],
+            [m_lwb_f[0], m_lwb_r[0], m_uwb_f[0], m_uwb_r[0], m_push[0], m_tie[0]],
+            [m_lwb_f[1], m_lwb_r[1], m_uwb_f[1], m_uwb_r[1], m_push[1], m_tie[1]],
+            [m_lwb_f[2], m_lwb_r[2], m_uwb_f[2], m_uwb_r[2], m_push[2], m_tie[2]]
+        ];
+        const B = [-F_ground[0], -F_ground[1], -F_ground[2], -M_ground[0], -M_ground[1], -M_ground[2]];
+
+        let results = [0,0,0,0,0,0];
+        try { results = solveLinearSystem(A, B); } catch(e) { console.error("Matriz singular", e); }
+
+        return {
+            forces: results, // [LWBf, LWBr, UWBf, UWBr, Push, Tie]
+            loads: { Fx: Fx_dyn, Fy: Fy_dyn, Fz: Fz_dyn },
+            geo: data,
+            massCorner: mass_corner_dyn,
+            torqueRemoved: torqueRemoved
+        };
+    }
+
+    // ==========================================
+    // 3. VISUALIZACIÓN 3D REALISTA (NEUMÁTICO + LLANTA)
+    // ==========================================
+
+    function createRealisticWheel(center, tireOD, tireWidth, rimOD, offset, uprightLower, uprightUpper) {
+        const traces = [];
+        
+        // --- 1. CALCULAR GEOMETRÍA BÁSICA Y ORIENTACIÓN ---
+        const tireRadius = tireOD / 2 / 1000;
+        const rimRadius = rimOD / 2 / 1000;
+        const width = tireWidth / 1000;
+        const offsetM = offset / 1000;
+
+        // Centro visual ajustado por el offset
+        // (Asumimos que el offset mueve la rueda hacia afuera, eje Y positivo en este sistema)
+        const visualCenter = [center[0], center[1] + offsetM, center[2]];
+
+        // Cálculo de Ángulos de Camber y Caster/KPI (Simplificado para visualización)
+        // Vector Kingpin
+        const kp_vec = sub(uprightUpper, uprightLower);
+        // Camber: Ángulo en plano YZ respecto a la vertical Z.
+        // Si Y del UWB es mayor que LWB (hacia adentro), es camber negativo.
+        const camberAngle = -Math.atan2(kp_vec[1], kp_vec[2]); // Radianes
+        // Toe: No lo calculamos aquí, asumimos 0 para simplificar visualización.
+
+        // Función de Rotación (Rotar un punto (0, y, z) alrededor del eje X local por Camber)
+        const rotate = (y, z) => {
+            const yr = y * Math.cos(camberAngle) - z * Math.sin(camberAngle);
+            const zr = y * Math.sin(camberAngle) + z * Math.cos(camberAngle);
+            return [yr, zr];
+        };
+
+        // Generador de Superficies Cilíndricas
+        const createCylinderSurface = (radius, width, color, metallic, name) => {
+            const theta = [], y = [], x_surf = [], y_surf = [], z_surf = [];
+            const steps = 40; // Resolución angular
+            const width_steps = 2; // Resolución ancho
+
+            for(let i=0; i<=steps; i++) theta.push((i/steps) * 2 * Math.PI);
+            y.push(-width/2); y.push(width/2); // Puntos extremos del ancho
+
+            for(let i=0; i<y.length; i++) {
+                let rowX = [], rowY = [], rowZ = [];
+                for(let j=0; j<theta.length; j++) {
+                    // Coordenadas base cilíndricas (eje Y es el eje de rotación)
+                    const base_x = radius * Math.cos(theta[j]);
+                    const base_y = y[i];
+                    const base_z = radius * Math.sin(theta[j]);
+                    
+                    // Rotar por Camber
+                    const [rot_y, rot_z] = rotate(base_y, base_z);
+
+                    // Trasladar al centro visual
+                    rowX.push(visualCenter[0] + base_x);
+                    rowY.push(visualCenter[1] + rot_y);
+                    rowZ.push(visualCenter[2] + rot_z);
+                }
+                x_surf.push(rowX); y_surf.push(rowY); z_surf.push(rowZ);
+            }
+
+            return {
+                type: 'surface', x: x_surf, y: y_surf, z: z_surf,
+                colorscale: [[0, color], [1, color]], showscale: false,
+                lighting: {ambient: 0.4, diffuse: 0.7, specular: metallic?0.6:0.1, roughness: metallic?0.3:0.8},
+                lightposition: {x: 10, y: 10, z: 100}, name: name, hoverinfo: 'skip', opacity: 1
+            };
+        }
+
+        // --- 2. CREAR COMPONENTES VISUALES ---
+        
+        // A) Banda de Rodadura (Tire Tread) - Negro Mate
+        traces.push(createCylinderSurface(tireRadius, width, '#1a1a1a', false, 'Neumático'));
+
+        // B) Paredes Laterales (Sidewalls) - Discos Negros
+        // Usamos scatter3d relleno para simplificar tapas
+        const createSidewall = (yPos) => {
+            const xc=[], yc=[], zc=[];
+            for(let i=0; i<=30; i++){
+                const t = (i/30)*2*Math.PI;
+                const [ry, rz] = rotate(yPos, tireRadius * Math.sin(t));
+                xc.push(visualCenter[0] + tireRadius * Math.cos(t));
+                yc.push(visualCenter[1] + ry);
+                zc.push(visualCenter[2] + rz);
+            }
+             // Cerrar círculo
+             xc.push(xc[0]); yc.push(yc[0]); zc.push(zc[0]);
+             return { type: 'scatter3d', mode: 'lines', x:xc, y:yc, z:zc, 
+                      line:{color:'#1a1a1a'}, surfaceaxis:1, surfacecolor:'#111', opacity:1, hoverinfo:'skip' };
+        }
+        traces.push(createSidewall(-width/2 + 0.005)); // Cara externa (ajuste fino para que no parpadee con la llanta)
+        traces.push(createSidewall(width/2 - 0.005));  // Cara interna
+
+        // C) Llanta (Rim) - Cilindro interno Plateado Metálico
+        // La llanta es un poco más ancha que la goma visualmente para el "labio"
+        traces.push(createCylinderSurface(rimRadius, width + 0.01, '#c0c0c0', true, 'Llanta'));
+
+        // D) Tapa de llanta (Hubcap/Spokes simplificado) - Disco plateado
+         const createRimFace = (yPos) => {
+            const xc=[], yc=[], zc=[];
+            for(let i=0; i<=20; i++){
+                const t = (i/20)*2*Math.PI;
+                const [ry, rz] = rotate(yPos, rimRadius * Math.sin(t));
+                xc.push(visualCenter[0] + rimRadius * Math.cos(t));
+                yc.push(visualCenter[1] + ry);
+                zc.push(visualCenter[2] + rz);
+            }
+            xc.push(xc[0]); yc.push(yc[0]); zc.push(zc[0]);
+            // Añadir centro para asegurar relleno correcto
+            const [cy, cz] = rotate(yPos, 0);
+            xc.unshift(visualCenter[0]); yc.unshift(visualCenter[1]+cy); zc.unshift(visualCenter[2]+cz);
+            
+             return { type: 'mesh3d', x:xc, y:yc, z:zc, alphahull:0, color:'#b0b0b0', opacity:1, flatshading:false, hoverinfo:'skip' };
+        }
+        traces.push(createRimFace(-width/2 - 0.002)); // Tapa externa
+
+        return traces;
+    }
+
+
+    // ==========================================
+    // 4. CONTROLADOR PRINCIPAL Y GRAFICACIÓN
+    // ==========================================
+
+    function calculateAndPlot() {
+        // 1. Leer Inputs Globales
+        const globalInputs = {
+            g_braking: val('g_braking'), g_accel: val('g_accel'), g_cornering: val('g_cornering'), g_bump: val('g_bump'),
+            mu_long: val('mu_long'), mu_lat: val('mu_lat'),
+            wheelbase: val('wheelbase') / 1000, track_front: val('track_front') / 1000, cg_height: val('cg_height') / 1000,
+            m_vehiculo: val('m_vehiculo'), m_piloto: val('m_piloto'), weight_dist_front: val('weight_dist_front'),
+            unsprung_f: val('unsprung_f'), unsprung_r: val('unsprung_r')
+        };
+        
+        // Inputs Visuales
+        const visualInputs = {
+            tire_od: val('tire_od'), tire_width: val('tire_width'), rim_od: val('rim_od'), wheel_offset: val('wheel_offset')
+        };
+
+        const viewMode = document.getElementById('viewMode').value;
+        let plots = [];
+        let htmlResults = "";
+
+        // --- EJECUTAR CÁLCULOS ---
+        if (viewMode === 'front' || viewMode === 'both') {
+            const resF = calculateAxle('front', vehicleData.front, globalInputs);
+            plots = plots.concat(generateAxleTraces(resF, 0, visualInputs, "Front"));
+            htmlResults += generateResultTable("SUSPENSIÓN DELANTERA", resF, 'front');
+        }
+
+        if (viewMode === 'rear' || viewMode === 'both') {
+            const resR = calculateAxle('rear', vehicleData.rear, globalInputs);
+            const xOffset = (viewMode === 'both') ? globalInputs.wheelbase : 0; 
+            plots = plots.concat(generateAxleTraces(resR, xOffset, visualInputs, "Rear"));
+            htmlResults += generateResultTable("SUSPENSIÓN TRASERA", resR, 'rear');
+            htmlResults += calculatePowertrain(resR.loads.Fx); // Añadir análisis de Palier
+        }
+
+        // RENDERIZAR
+        document.getElementById('results-output').innerHTML = htmlResults;
+
+        const layout = {
+            margin: {l:0, r:0, b:0, t:0},
+            paper_bgcolor: '#dae3e7', // Color de fondo del contenedor
+            plot_bgcolor: '#dae3e7',
+            scene: {
+                aspectmode: "data",
+                xaxis: {title: 'X (Longitudinal)', showgrid:true, gridcolor:'white', zerolinecolor:'white', showbackground:true, backgroundcolor:'#dae3e7'},
+                yaxis: {title: 'Y (Transversal)', showgrid:true, gridcolor:'white', zerolinecolor:'white', showbackground:true, backgroundcolor:'#dae3e7'},
+                zaxis: {title: 'Z (Vertical)', showgrid:true, gridcolor:'white', zerolinecolor:'white', showbackground:true, backgroundcolor:'#ededea'},
+                camera: { eye: {x: 1.8, y: -1.8, z: 1.2}, up: {x:0, y:0, z:1}, center: {x:0, y:0, z:-0.2} },
+                dragmode: 'orbit'
+            },
+            showlegend: false
+        };
+        
+        Plotly.react('plot3d', plots, layout, {displayModeBar: false});
+    }
+
+    function generateAxleTraces(res, xOffset, vi, label) {
+        const g = res.geo; const f = res.forces;
+        let traces = [];
+        const pos = (p) => [p[0] + xOffset, p[1], p[2]]; // Aplicar offset X (wheelbase)
+
+        // 1. Tubos de Suspensión
+        const links = [
+            {n: "LWB F", f: f[0], p1: g.lwb_f, p2: g.lwb_u}, {n: "LWB R", f: f[1], p1: g.lwb_r, p2: g.lwb_u},
+            {n: "UWB F", f: f[2], p1: g.uwb_f, p2: g.uwb_u}, {n: "UWB R", f: f[3], p1: g.uwb_r, p2: g.uwb_u},
+            {n: "Pushrod", f: f[4], p1: g.push_c, p2: g.push_u}, {n: "Tie/Toe", f: f[5], p1: g.tie_c, p2: g.tie_u}
+        ];
+
+        links.forEach(l => {
+            const p1 = pos(l.p1), p2 = pos(l.p2);
+            // Color según estado: Rojo intenso=Tracción, Azul intenso=Compresión.
+            // Grosor variable según magnitud de fuerza
+            const absF = Math.abs(l.f);
+            const color = l.f > 0 ? `rgba(0, 100, 255, ${Math.min(1, 0.5 + absF/15000)})` : `rgba(255, 50, 50, ${Math.min(1, 0.5 + absF/15000)})`;
+            const width = Math.max(3, Math.min(12, absF / 1500));
+
+            traces.push({
+                type: 'scatter3d', mode: 'lines+markers',
+                x: [p1[0], p2[0]], y: [p1[1], p2[1]], z: [p1[2], p2[2]],
+                line: {color: color, width: width}, marker: {size: 3, color: '#333'},
+                hoverinfo: 'text', text: `${label} ${l.n}: ${l.f.toFixed(0)} N`
+            });
+        });
+
+        // 2. Rueda Realista
+        const wheelTraces = createRealisticWheel(pos(g.tire_center), vi.tire_od, vi.tire_width, vi.rim_od, vi.wheel_offset, pos(g.lwb_u), pos(g.uwb_u));
+        traces = traces.concat(wheelTraces);
+
+        // 3. Referencia Suelo
+        traces.push({
+            type: 'scatter3d', mode: 'markers', x: [pos(g.tire_center)[0]], y: [pos(g.tire_center)[1] + vi.wheel_offset/1000], z: [0],
+            marker: {symbol:'circle-open', size: 8, color: '#444', line:{width:2}}, hoverinfo:'skip'
+        });
+
+        return traces;
+    }
+
+    // ==========================================
+    // 5. GENERACIÓN DE RESULTADOS (HTML)
+    // ==========================================
+
+    function generateResultTable(title, res, type) {
+        const names = type==='front' 
+            ? ["LWB Front", "LWB Rear", "UWB Front", "UWB Rear", "Pushrod", "Tie Rod"]
+            : ["LWB Front", "LWB Rear", "UWB Front", "UWB Rear", "Pushrod", "Toe Link"];
+        
+        // Inputs de Material
+        const yieldStr = val('mat_yield'); const E_gpa = val('mat_E');
+        const od_mm = val('tube_od'); const id_mm = val('tube_id');
+        const sf_target = val('sf_target');
+
+        // Cálculos de sección
+        const od = od_mm/1000, id = id_mm/1000;
+        const area = (Math.PI/4) * (od**2 - id**2);
+        const I = (Math.PI/64) * (od**4 - id**4);
+        const E = E_gpa * 1e9;
+
+        let html = `<div class="result-block"><h3>${title}</h3><table>
+            <tr><th>Elemento</th><th>Fuerza (N)</th><th>Esfuerzo (MPa)</th><th>FS Fluencia</th><th>FS Pandeo</th></tr>`;
+        
+        res.forces.forEach((force, i) => {
+            const state = force > 0 ? "Comp." : "Trac.";
+            const stress_mpa = (Math.abs(force) / area) / 1e6;
+            const fs_yield = yieldStr / stress_mpa;
+            
+            let fs_buckling_str = "N/A";
+            let buckling_class = "";
+
+            if (force > 0) { // Chequeo de Pandeo solo en compresión
+                // Calcular longitud real del elemento usando la geometría
+                const p1 = Object.values(res.geo)[i*3+1]; // Truco sucio para sacar puntos del objeto geo ordenado
+                const p2 = Object.values(res.geo)[i*3+3];
+                if(p1 && p2) {
+                    const L = norm(sub(p1, p2));
+                    const P_crit = (Math.PI**2 * E * I) / (L**2);
+                    const fs_b = P_crit / force;
+                    fs_buckling_str = fs_b.toFixed(2);
+                    if(fs_b < sf_target) buckling_class = fs_b < 1.0 ? "danger" : "warning";
+                }
+            }
+
+            const fs_y_class = fs_yield < sf_target ? (fs_yield < 1.5 ? "danger" : "warning") : "ok";
+
+            html += `<tr>
+                <td><strong>${names[i]}</strong></td>
+                <td style="color:${force>0?'#4dabf7':'#ff6b6b'}">${force.toFixed(0)} (${state})</td>
+                <td>${stress_mpa.toFixed(1)}</td>
+                <td class="${fs_y_class}">${fs_yield.toFixed(2)}</td>
+                <td class="${buckling_class}">${fs_buckling_str}</td>
+            </tr>`;
+        });
+        html += `</table>
+        <div class="result-footer">
+            Masa en esquina (cargada): ${res.massCorner.toFixed(1)} kg<br>
+            Cargas en Parche: Fx=${res.loads.Fx.toFixed(0)}, Fy=${res.loads.Fy.toFixed(0)}, Fz=${res.loads.Fz.toFixed(0)} N
+            ${res.torqueRemoved ? `<br><span style="color:#69db7c">Torque motor eliminado del Upright: ${res.torqueRemoved.toFixed(1)} Nm</span>` : ''}
+        </div></div><br>`;
+        return html;
+    }
+
+    function calculatePowertrain(Fx_trac) {
+        const eng_torque = val('eng_torque');
+        const ratio = val('gear_ratio');
+        const eff = val('drivetrain_eff');
+        const palier_od = val('palier_od')/1000;
+        const palier_id = val('palier_id')/1000;
+        const tire_radius = val('tire_od')/2000;
+
+        const wheel_torque = eng_torque * ratio * eff;
+        const grip_torque = Fx_trac * tire_radius;
+        const design_torque = Math.min(wheel_torque, grip_torque);
+
+        // Material Palier (Hardcoded 4340 tratado como en tu ejemplo)
+        const yield_shear = 900 * 0.58; 
+        const J = (Math.PI/32) * (palier_od**4 - palier_id**4);
+        const c = palier_od / 2;
+        const shear_stress = (design_torque * c) / J; // Pascales
+        const shear_stress_mpa = shear_stress / 1e6;
+        const fs = yield_shear / shear_stress_mpa;
+        
+        const fs_class = fs < 3.5 ? (fs < 2.0 ? "danger" : "warning") : "ok";
+
+        return `<div class="result-block" style="border-top: 4px solid #fca311;"><h3>ANÁLISIS TREN DE POTENCIA (PALIER)</h3>
+        <table><tr><th>Parámetro</th><th>Valor</th></tr>
+        <tr><td>Torque Motor en Rueda</td><td>${wheel_torque.toFixed(1)} Nm</td></tr>
+        <tr><td>Torque Límite por Grip</td><td>${grip_torque.toFixed(1)} Nm</td></tr>
+        <tr><td><strong>Torque de Diseño</strong></td><td><strong>${design_torque.toFixed(1)} Nm</strong></td></tr>
+        <tr><td>Esfuerzo Cortante</td><td>${shear_stress_mpa.toFixed(1)} MPa</td></tr>
+        <tr><td><strong>FS Torsión (vs 522 MPa)</strong></td><td class="${fs_class}"><strong>${fs.toFixed(2)}</strong></td></tr>
+        </table>
+        <div class="result-footer">Material asumido: Acero 4340 Tratado (Sy Cortante approx 522 MPa)</div>
+        </div>`;
+    }
+
+    // Inicialización
+    switchTab('front');
+    // Pequeño delay para asegurar que Plotly cargó
+    setTimeout(() => {
+        calculateAndPlot();
+        // Ajustar cámara inicial
+        Plotly.relayout('plot3d', {'scene.camera.eye': {x: 2.2, y: -2.2, z: 1.5}});
+    }, 800);
+
+</script>
+</body>
+</html>
