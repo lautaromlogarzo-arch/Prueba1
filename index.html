@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador FSAE - Suite Completa (V5 + Dirección + Fatiga + Frenos)</title>
+    <title>LOGES - Logarzo Engineering Suite</title>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     
     <style>
@@ -31,6 +31,31 @@
             overflow: hidden; 
         }
 
+        /* --- NUEVO: BRAND HEADER (LOGES) --- */
+        .brand-bar {
+            background: var(--dark);
+            color: #fff;
+            padding: 12px 24px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            border-bottom: 4px solid var(--primary);
+            z-index: 101;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .brand-title {
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 900;
+            font-size: 1.4rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin: 0;
+            background: linear-gradient(90deg, #fff, #ddd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         /* --- GOOGLE STYLE TABS HEADER --- */
         .google-header {
             background: var(--google-bg);
@@ -49,13 +74,14 @@
             align-items: center;
             padding: 0 24px;
             color: var(--google-text);
-            font-weight: 500;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
             position: relative;
             text-transform: uppercase;
             transition: background 0.2s;
             white-space: nowrap;
+            height: 100%;
         }
 
         .g-tab:hover {
@@ -82,14 +108,14 @@
         #app-container-v5 {
             display: flex;
             flex: 1;
-            height: calc(100vh - 48px);
+            height: calc(100vh - 48px - 55px); /* Ajuste por el nuevo header */
             overflow: hidden;
         }
 
         #app-container-steering, #app-container-fatigue, #app-container-brakes {
             display: none; 
             flex: 1;
-            height: calc(100vh - 48px);
+            height: calc(100vh - 48px - 55px);
             overflow-y: auto;
             background: #f8f9fa;
             padding: 20px;
@@ -272,8 +298,12 @@
 </head>
 <body>
 
+    <div class="brand-bar">
+        <h1 class="brand-title">LOGES - Logarzo Engineering Suite</h1>
+    </div>
+
     <div class="google-header">
-        <div class="g-tab active" onclick="showApp('v5', this)">Suspensión V5 (Original)</div>
+        <div class="g-tab active" onclick="showApp('v5', this)">Esfuerzos en barras y portamaza</div>
         <div class="g-tab" onclick="showApp('steering', this)">Dirección (Rack & Pinion)</div>
         <div class="g-tab" onclick="showApp('fatigue', this)">Cálculo de fatiga en la masa</div>
         <div class="g-tab" onclick="showApp('brakes', this)">Dimensionamiento de frenos</div>
