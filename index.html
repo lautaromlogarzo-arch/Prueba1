@@ -2,1783 +2,438 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGES - Logarzo Engineering Suite</title>
-    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Presentismo Chasis Drive FSAE</title>
     
+    <link rel="icon" type="image/png" href="image_fb7353.png">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { 
-            --primary: #d62828; 
-            --dark: #003049; 
-            --light: #fdf0d5; 
-            --accent: #669bbc; 
-            --chassis: #7f8c8d; 
-            --fea: #9b59b6; 
-            /* Google Tabs Style Vars */
-            --google-blue: #1a73e8;
-            --google-text: #5f6368;
-            --google-bg: #fff;
-        }
-        
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #edf2f4; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            overflow: hidden; 
+        :root {
+            --bg-color: #121212;
+            --card-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --primary-red: #d62828;
+            --status-free: #2ecc71;
+            --status-busy: #e74c3c;
         }
 
-        /* --- NUEVO: BRAND HEADER (LOGES) --- */
-        .brand-bar {
-            background: var(--dark);
-            color: #fff;
-            padding: 12px 24px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            border-bottom: 4px solid var(--primary);
-            z-index: 101;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        
-        .brand-title {
-            font-family: 'Segoe UI', sans-serif;
-            font-weight: 900;
-            font-size: 1.4rem;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
-            background: linear-gradient(90deg, #fff, #ddd);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* --- GOOGLE STYLE TABS HEADER --- */
-        .google-header {
-            background: var(--google-bg);
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            padding: 0 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            z-index: 100;
-            height: 48px;
-            flex-shrink: 0;
-            overflow-x: auto; 
-        }
-
-        .g-tab {
-            display: flex;
-            align-items: center;
-            padding: 0 24px;
-            color: var(--google-text);
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            position: relative;
-            text-transform: uppercase;
-            transition: background 0.2s;
-            white-space: nowrap;
-            height: 100%;
-        }
-
-        .g-tab:hover {
-            background: #f1f3f4;
-            color: #202124;
-        }
-
-        .g-tab.active {
-            color: var(--google-blue);
-        }
-
-        .g-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--google-blue);
-            border-radius: 3px 3px 0 0;
-        }
-
-        /* --- APP CONTAINERS --- */
-        #app-container-v5 {
-            display: flex;
-            flex: 1;
-            height: calc(100vh - 48px - 55px); /* Ajuste por el nuevo header */
-            overflow: hidden;
-        }
-
-        #app-container-steering, #app-container-fatigue, #app-container-brakes {
-            display: none; 
-            flex: 1;
-            height: calc(100vh - 48px - 55px);
-            overflow-y: auto;
-            background: #f8f9fa;
-            padding: 20px;
-            box-sizing: border-box;
-            flex-direction: row;
-            gap: 20px;
-        }
-
-        /* --- ESTILOS COMPARTIDOS PARA PANELES LATERALES --- */
-        .steering-panel, .fatigue-panel, .brake-panel {
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-            padding: 20px;
-            flex: 1;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
-            max-width: 450px;
-            border-left: 4px solid var(--accent);
+            height: 100vh; /* Altura completa para móviles */
         }
 
-        .fatigue-panel { border-left: 4px solid #e67e22; }
-        .brake-panel { border-left: 4px solid #27ae60; }
-
-        /* PANEL DE RESULTADOS VISUALES */
-        .st-output-container {
-            flex: 2;
-            overflow-y: auto;
-            padding: 0 10px;
-            font-family: 'Segoe UI', sans-serif; 
-        }
-
-        .st-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-            border: 1px solid #eaeaea;
-        }
-
-        .st-card h3 {
-            color: var(--dark);
-            border-bottom: 2px solid var(--accent);
-            padding-bottom: 8px;
-            margin-top: 0;
-            font-size: 1.1rem;
-        }
-
-        /* Grid para mostrar datos clave (Torques, Angulos) */
-        .st-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .st-stat-box {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
-            border-left: 4px solid #ddd;
+        /* --- HEADER MODIFICADO --- */
+        header {
+            background-color: var(--card-color);
+            padding: 15px;
+            border-bottom: 2px solid var(--primary-red);
         }
         
-        .st-stat-box.highlight { border-left-color: var(--primary); background: #fff5f5; }
-        .st-stat-box.info { border-left-color: var(--google-blue); background: #f0f8ff; }
-        .st-stat-box.success { border-left-color: #27ae60; background: #eafaf1; }
-        .st-stat-box.warning { border-left-color: #f39c12; background: #fef9e7; }
-        .st-stat-box.danger { border-left-color: #c0392b; background: #fdedec; }
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 600px;
+            margin: 0 auto;
+            gap: 15px;
+        }
 
-        .st-stat-label {
-            display: block;
+        .app-logo {
+            height: 50px;
+            width: auto;
+            border-radius: 4px; /* Opcional: bordes redondeados al logo */
+        }
+
+        .header-texts {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .subtitle-link {
             font-size: 0.75rem;
-            color: #666;
+            color: var(--primary-red);
+            text-decoration: none;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        .subtitle-link:hover { text-decoration: underline; }
+
+        h1 {
+            margin: 0;
+            font-size: 1.1rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            line-height: 1.2;
         }
 
-        .st-stat-value {
-            display: block;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .st-unit { font-size: 0.8rem; font-weight: normal; color: #888; }
-
-        /* Estilos de Tabla mejorada */
-        .st-table {
-            width: 100%;
-            border-collapse: collapse;
+        /* --- RELOJ --- */
+        .live-clock {
+            background: #181818;
+            text-align: center;
+            padding: 5px;
             font-size: 0.9rem;
-            margin-top: 10px;
+            color: #888;
+            border-bottom: 1px solid #333;
+            font-family: monospace; /* Fuente tipo reloj digital */
+            letter-spacing: 1px;
         }
 
-        .st-table th {
-            background: #f1f3f4;
-            color: #444;
-            font-weight: 600;
-            text-align: left;
-            padding: 10px;
-            border-bottom: 2px solid #ddd;
+        /* --- TABS --- */
+        nav { display: flex; background: var(--card-color); }
+        .tab-btn {
+            flex: 1; padding: 15px; background: none; border: none;
+            color: #888; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; font-size: 0.9rem;
+            border-bottom: 3px solid transparent;
+            transition: 0.3s;
+            outline: none; /* Quitar borde azul al tocar en móvil */
+        }
+        .tab-btn.active {
+            color: #fff;
+            border-bottom: 3px solid var(--primary-red);
+            background: rgba(214, 40, 40, 0.05);
         }
 
-        .st-table td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #eee;
-            color: #333;
+        /* --- MAIN CONTENT --- */
+        main {
+            flex: 1;
+            overflow-y: auto; /* Scroll solo en el contenido */
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+            padding-bottom: 80px; /* Espacio para el footer fijo */
+            -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
         }
 
-        .st-table tr:hover { background-color: #f9f9f9; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Etiquetas (Badges) */
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            margin-left: 5px;
+        /* --- FORMULARIOS --- */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.9rem; }
+        input, textarea {
+            width: 100%; padding: 12px; background: #2d2d2d; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 1rem; box-sizing: border-box; font-family: inherit;
         }
-
-        .badge-confort { background-color: #e6fffa; color: #00b894; border: 1px solid #b2f5ea; }
-        .badge-optimo { background-color: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
-        .badge-safe { background-color: #eafaf1; color: #27ae60; border: 1px solid #abebc6; }
-        .badge-danger { background-color: #fdedec; color: #c0392b; border: 1px solid #fadbd8; }
-        .badge-warning { background-color: #fef9e7; color: #f39c12; border: 1px solid #f9e79f; }
-
-        /* Inputs Generales */
-        .st-header { color: var(--dark); border-bottom: 2px solid #eee; margin-bottom: 15px; padding-bottom: 5px; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; }
-        .st-sub-header { color: var(--google-blue); font-size: 0.9rem; font-weight: 700; margin-top: 15px; margin-bottom: 8px; text-transform: uppercase; }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary-red); }
         
-        .st-row { display: flex; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #f1f1f1; padding-bottom: 2px; }
-        .st-row label { flex: 2; font-size: 0.85rem; color: #444; font-weight: 600; }
-        .st-row input { flex: 1; padding: 4px; border: 1px solid #ccc; border-radius: 4px; text-align: right; font-family: monospace; font-weight: bold; color: var(--primary); }
-        
-        .st-btn { background: var(--google-blue); color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 20px; box-shadow: 0 2px 4px rgba(26, 115, 232, 0.3); }
-        .st-btn:hover { background: #1557b0; }
-        .fatigue-btn { background: #e67e22; }
-        .fatigue-btn:hover { background: #d35400; }
-        .brake-btn { background: #27ae60; }
-        .brake-btn:hover { background: #1e8449; }
+        .btn-action {
+            width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 10px; -webkit-tap-highlight-color: transparent;
+        }
+        .btn-action:active { transform: scale(0.98); }
+        .btn-start { background-color: var(--status-free); color: #000; }
+        .btn-end { background-color: var(--status-busy); color: #fff; }
 
+        /* --- TARJETA DE OPERARIO ACTUAL --- */
+        .current-worker-card {
+            background: rgba(231, 76, 60, 0.1); border: 1px solid var(--status-busy); padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;
+        }
+        .worker-name { font-size: 1.5rem; font-weight: bold; color: #fff; display: block; margin: 10px 0; }
 
-        /* --- ESTILOS ORIGINALES (V5) --- */
-        .sidebar { width: 450px; background: #fff; overflow-y: auto; padding: 20px; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 10; display: flex; flex-direction: column; border-right: 1px solid #ddd; }
-        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
-        .viz-container { flex: 1; position: relative; background: #dae3e7; }
-        .results-panel { height: 400px; background: var(--dark); color: #eee; overflow-y: auto; padding: 15px 25px; font-family: 'Consolas', monospace; font-size: 0.85rem; border-top: 4px solid var(--primary); }
-        h2 { color: var(--dark); border-bottom: 3px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px; font-size: 1.2rem; text-transform: uppercase; }
-        h3 { margin-top: 0; margin-bottom: 10px; font-size: 1rem; color: #fff; border-bottom: 1px solid #555; padding-bottom: 5px; }
-        h4 { margin: 12px 0 5px 0; color: var(--accent); font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 2px; }
-        .section-header { font-weight: bold; color: var(--dark); margin-top: 15px; margin-bottom: 5px; display: block; font-size: 0.95em; background: #f0f4f8; padding: 5px; border-radius: 4px; }
-        .input-group { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #e9ecef; margin-bottom: 8px; }
-        .row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
-        .row label { flex: 1.6; font-size: 0.8rem; font-weight: 600; color: #444; }
-        .row input, .row select { flex: 1; padding: 4px 6px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.85rem; }
-        .row input[type="color"] { padding: 0; height: 25px; }
-        .coord-inputs { display: flex; gap: 2px; flex: 2; }
-        .coord-inputs input { width: 100%; text-align: center; font-family: monospace; font-weight: 500; font-size: 0.8rem; }
-        .calc-button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; cursor: pointer; font-size: 1rem; font-weight: 800; border-radius: 6px; margin-top: 15px; box-shadow: 0 4px 6px rgba(214, 40, 40, 0.3); }
-        .calc-button:hover { background: #b51717; transform: translateY(-1px); }
-        .tabs { display: flex; background: #e9ecef; border-radius: 6px; padding: 3px; margin-bottom: 15px; }
-        .tab { flex: 1; text-align: center; padding: 8px; cursor: pointer; font-weight: 700; color: #666; border-radius: 4px; transition: 0.2s; font-size: 0.8rem; }
-        .tab.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 5px; margin-bottom: 15px; }
-        th { text-align: left; color: #a8dadc; border-bottom: 2px solid #457b9d; padding: 5px; font-weight: 600; font-size: 0.8rem; letter-spacing: 0.5px; }
-        td { padding: 5px; border-bottom: 1px solid #365b77; color: #ddd; }
-        .danger { color: #ff4d4d; font-weight: bold; } 
-        .warning { color: #ffd166; font-weight: bold; } 
-        .ok { color: #06d6a0; font-weight: bold; }
-        .vector-cell { color: #a8dadc; font-family: 'Consolas', monospace; font-weight: bold; }
-        .tire-inputs input { text-align: center; font-weight: bold; color: var(--dark); }
-        .cb-label { display: flex; align-items: center; cursor: pointer; font-weight: bold; color: var(--primary); font-size: 0.9rem;}
-        .note { font-size: 0.75rem; color: #aaa; margin-top: 4px; font-style: italic; }
-        .result-block { margin-bottom: 20px; padding-bottom: 10px; }
+        /* --- HISTORIAL --- */
+        .log-list { list-style: none; padding: 0; margin: 0; }
+        .log-item { background: var(--card-color); margin-bottom: 15px; padding: 15px; border-radius: 8px; border-left: 4px solid #555; }
+        .log-header { font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .log-line { font-size: 0.9rem; color: #bbb; margin-bottom: 5px; line-height: 1.4; }
+        .highlight-in { color: var(--status-free); font-weight: bold; }
+        .highlight-out { color: var(--status-busy); font-weight: bold; }
+        .log-note { font-style: italic; color: #777; display: block; margin-top: 2px; font-size: 0.85rem; }
+
+        /* --- FOOTER --- */
+        .status-footer {
+            position: fixed; bottom: 0; left: 0; width: 100%; padding: 15px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 1rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 100;
+        }
+        .status-free { background-color: var(--status-free); color: #000; }
+        .status-busy { background-color: var(--status-busy); color: #fff; }
+        .status-loading { background-color: #444; color: #fff; }
+
+        /* --- MEDIA QUERIES PARA CELULARES PEQUEÑOS --- */
+        @media (max-width: 480px) {
+            .header-container { flex-direction: column; text-align: center; gap: 10px; }
+            .header-texts { align-items: center; }
+            .app-logo { height: 45px; }
+            h1 { font-size: 1rem; }
+            main { padding: 15px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="brand-bar">
-        <h1 class="brand-title">LOGES - Logarzo Engineering Suite</h1>
-    </div>
+    <header>
+        <div class="header-container">
+            <img src="image_fb7353.png" alt="FSAE Logo" class="app-logo">
+            
+            <div class="header-texts">
+                <a href="https://lautaromlogarzo-arch.github.io/FSAE-Suspension/" target="_blank" class="subtitle-link">
+                    De los creadores de Lautaro Logarzo Performance Systems...
+                </a>
+                <h1><i class="fa-solid fa-user" style="color:var(--primary-red); margin-right: 5px;"></i> Presentismo Chasis Drive FSAE</h1>
+            </div>
+        </div>
+    </header>
 
-    <div class="google-header">
-        <div class="g-tab active" onclick="showApp('v5', this)">Esfuerzos en barras y portamaza</div>
-        <div class="g-tab" onclick="showApp('steering', this)">Dirección (Rack & Pinion)</div>
-        <div class="g-tab" onclick="showApp('fatigue', this)">Cálculo de fatiga en la masa</div>
-        <div class="g-tab" onclick="showApp('brakes', this)">Dimensionamiento de frenos</div>
-    </div>
+    <nav>
+        <button id="btn-presence" class="tab-btn active">Marcar Presencia</button>
+        <button id="btn-history" class="tab-btn">Historial</button>
+    </nav>
 
-    <div id="app-container-v5">
-        <div class="sidebar">
-            <h2>Simulador Suspensión FSAE</h2>
+    <div id="live-clock" class="live-clock">Cargando hora...</div>
 
-            <div class="input-group" style="background: #e3f2fd; border-color: #bbdefb;">
-                <div class="row">
-                    <label>VISTA 3D:</label>
-                    <select id="viewMode" onchange="calculateAndPlot()" style="font-weight:bold; flex:2;">
-                        <option value="full">Vehículo Completo (4 Ruedas)</option>
-                        <option value="both">Solo Suspensión (Izq. D+T)</option>
-                        <option value="front" selected>Solo Delantera (Izq.)</option>
-                        <option value="rear">Solo Trasera (Izq.)</option>
-                    </select>
+    <main>
+        <div id="presence" class="tab-content active">
+            
+            <div id="loading-ui" style="text-align:center; padding: 40px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary-red);"></i>
+                <p style="color:#777; margin-top:15px;">Sincronizando con la base de datos...</p>
+            </div>
+
+            <div id="view-checkin" style="display:none;">
+                <h3 style="color: var(--status-free); text-align: center; margin-top: 0;"> <i class="fa-solid fa-door-open"></i> Iniciar Jornada</h3>
+                <div class="form-group">
+                    <label>Nombre del Miembro</label>
+                    <input type="text" id="inputName" placeholder="Ej: Lautaro Logarzo" autocomplete="off">
                 </div>
+                <div class="form-group">
+                    <label>Nota de Ingreso (Opcional)</label>
+                    <textarea id="inputStartNote" rows="2" placeholder="Tarea a realizar..."></textarea>
+                </div>
+                <button id="btnStartSession" class="btn-action btn-start">
+                    <i class="fa-solid fa-play"></i> MARCAR INGRESO
+                </button>
             </div>
 
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('front')">Delantera (L)</div>
-                <div class="tab" onclick="switchTab('rear')">Trasera (L)</div>
-            </div>
-            <div id="active-inputs-container" class="input-group"></div>
-
-            <span class="section-header">PARÁMETROS DEL VEHÍCULO</span>
-            <div class="input-group">
-                <h4>Dinámica</h4>
-                <div class="row"><label>G Frenado:</label><input type="number" id="g_braking" value="1.7" step="0.1"></div>
-                <div class="row"><label>G Aceleración:</label><input type="number" id="g_accel" value="1.2" step="0.1"></div>
-                <div class="row"><label>G Lateral:</label><input type="number" id="g_cornering" value="2.0" step="0.1"></div>
-                <div class="row"><label>G Bump:</label><input type="number" id="g_bump" value="3.0" step="0.1"></div>
-                <div class="row"><label>Mu Lng/Lat:</label><div class="coord-inputs"><input type="number" id="mu_long" value="1.0" step="0.1"><input type="number" id="mu_lat" value="1.0" step="0.1"></div></div>
-
-                <h4>Dimensiones y Masa</h4>
-                <div class="row"><label>Wheelbase (mm):</label><input type="number" id="wheelbase" value="1650"></div>
-                <div class="row"><label>Trocha Del. (mm):</label><input type="number" id="track_front" value="1200"></div>
-                <div class="row"><label>Altura CG (mm):</label><input type="number" id="cg_height" value="350"></div>
-                <div class="row"><label>Masa Total (kg):</label><input type="number" id="m_total" value="365"></div>
-                <div class="row"><label>% Peso Frontal:</label><input type="number" id="weight_dist_front" value="0.4" step="0.01"></div>
-                <div class="row"><label>No Susp. (D/T):</label><div class="coord-inputs"><input type="number" id="unsprung_f" value="28"><input type="number" id="unsprung_r" value="28"></div></div>
-            </div>
-
-            <span class="section-header">DATOS FEA (FRENO)</span>
-            <div class="input-group" style="border-left:4px solid var(--fea);">
-                <div class="row"><label>Torque Freno (Nm):</label><input type="number" id="fea_brake_torque" value="320.0"></div>
-                <div class="row"><label>Radio Montaje (mm):</label><input type="number" id="fea_mount_radius" value="80.0"></div>
-                <div class="row"><label>Orejas Caliper:</label><input type="number" id="fea_ears" value="2"></div>
-            </div>
-
-            <span class="section-header">RUEDAS Y MATERIALES</span>
-            <div class="input-group">
-                <h4>Neumático y Llanta</h4>
-                <div class="row"><label>Medida:</label>
-                    <div class="coord-inputs tire-inputs">
-                        <input type="number" id="tire_w_inp" value="175"><span style="padding:4px; font-weight:bold;">/</span>
-                        <input type="number" id="tire_ar_inp" value="50"><span style="padding:4px; font-weight:bold;">R</span>
-                        <input type="number" id="rim_d_inp" value="13"></div></div>
-                <div class="row"><label style="color:var(--primary); font-weight:bold;">Offset (mm):</label>
-                    <input type="number" id="wheel_offset" value="45" style="border: 2px solid var(--primary); font-weight:bold;"></div>
-                
-                <div class="row" style="margin-top:8px; background:#eee; padding:5px; border-radius:4px;">
-                    <label class="cb-label" for="transparent_tires">
-                        <input type="checkbox" id="transparent_tires" onchange="calculateAndPlot()">Ruedas Transparentes
-                    </label>
+            <div id="view-checkout" style="display:none;">
+                <div class="current-worker-card">
+                    <i class="fa-solid fa-user-gear" style="font-size: 2rem; color: var(--status-busy);"></i>
+                    <span class="worker-name" id="displayWorkerName">--</span>
+                    <span style="color:#aaa; font-size: 0.9rem;">Ingresó: <span id="displayStartTime" style="font-weight: bold; color: #ddd;">--</span></span>
+                    <div id="displayStartNote" style="margin-top:15px; font-style: italic; color: #bbb; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px;"></div>
                 </div>
 
-                <h4>Tubos & Colores (Negativo=Compresión)</h4>
-                <div class="row"><label>Sy(MPa)/E(GPa):</label><div class="coord-inputs"><input type="number" id="mat_yield" value="310"><input type="number" id="mat_E" value="210"></div></div>
-                <div class="row"><label>OD/ID (mm):</label><div class="coord-inputs"><input type="number" id="tube_od" value="20"><input type="number" id="tube_id" value="0"></div></div>
-                <div class="row"><label>FS Objetivo:</label><input type="number" id="sf_target" value="3.5" step="0.1"></div>
-                <div class="row"><label>Comp. / Trac.:</label><div class="coord-inputs"><input type="color" id="color_comp" value="#ff0000"><input type="color" id="color_tens" value="#0088ff"></div></div>
-                <div class="note">Convención: Fuerza Negativa (-) = Compresión</div>
-            </div>
+                <h3 style="color: #fff; text-align: center;">Finalizar Jornada</h3>
+                <div class="form-group">
+                    <label>Nota de Egreso</label>
+                    <textarea id="inputEndNote" rows="3" placeholder="Progreso, problemas, faltantes..."></textarea>
+                </div>
+                <input type="hidden" id="activeDocId"> 
 
-            <span class="section-header">TRANSMISIÓN (Trasera)</span>
-            <div class="input-group">
-                <div class="row"><label>Torque Motor (Nm):</label><input type="number" id="eng_torque" value="120"></div>
-                <div class="row"><label>Relación / Efic.:</label><div class="coord-inputs"><input type="number" id="gear_ratio" value="4.0"><input type="number" id="drivetrain_eff" value="0.95" step="0.01"></div></div>
-                <div class="row"><label>Palier OD/ID:</label><div class="coord-inputs"><input type="number" id="palier_od" value="22.0"><input type="number" id="palier_id" value="0.0"></div></div>
-                <div class="row"><label>Sy Material (MPa):</label><input type="number" id="palier_sy" value="900"></div>
-            </div>
-
-            <button class="calc-button" onclick="calculateAndPlot()">⚡ ACTUALIZAR SIMULACIÓN</button>
-            <br><br>
-        </div>
-
-        <div class="main-content">
-            <div id="plot3d" class="viz-container"></div>
-            <div class="results-panel">
-                <div id="results-output" style="text-align:center; color:#aaa;">Cargando...</div>
-                <div id="fea-report-container"></div>
+                <button id="btnEndSession" class="btn-action btn-end">
+                    <i class="fa-solid fa-stop"></i> FINALIZAR SESIÓN
+                </button>
             </div>
         </div>
+
+        <div id="history" class="tab-content">
+            <ul class="log-list" id="historyList"></ul>
+            <div id="emptyHistory" style="text-align: center; color: #666; display: none; padding: 20px;">Cargando historial...</div>
+        </div>
+    </main>
+
+    <div id="statusFooter" class="status-footer status-loading">
+        Conectando...
     </div>
 
-    <div id="app-container-steering">
-        <div class="steering-panel">
-            <h2 class="st-header">Cálculo de Dirección FSAE</h2>
-            
-            <div class="st-sub-header">1. Inputs Geometría (Tabla)</div>
-            <div class="st-row"><label>Giro Volante (°):</label><input type="number" id="st_giro_vol" value="135.0"></div>
-            <div class="st-row"><label>Giro Rueda (°):</label><input type="number" id="st_giro_rueda" value="35.0"></div>
-            <div class="st-row"><label>Fuerza Objetivo (kg):</label><input type="number" id="st_obj_kg" value="15.0"></div>
-            
-            <div style="background:#f0f8ff; padding:5px; margin:5px 0; border-radius:4px;">
-                <div class="st-row"><label>Masa (kg):</label><input type="number" id="st_g_masa" value="360.0"></div>
-                <div class="st-row"><label>H CG (mm):</label><input type="number" id="st_g_hcg" value="350.0"></div>
-                <div class="st-row"><label>Trocha (mm):</label><input type="number" id="st_g_trocha" value="1200.0"></div>
-                <div class="st-row"><label>% Peso Front:</label><input type="number" id="st_g_pf" value="40.0"></div>
-                <div class="st-row"><label>% LLTD Front:</label><input type="number" id="st_g_lltd" value="50.0"></div>
-                <div class="st-row"><label>Caster (°):</label><input type="number" id="st_g_caster" value="8.0"></div>
-                <div class="st-row"><label>KPI (°):</label><input type="number" id="st_g_kpi" value="9.0"></div>
-                <div class="st-row"><label>Scrub Radius (mm):</label><input type="number" id="st_g_scrub" value="10.0"></div>
-                <div class="st-row"><label>Pneu. Trail (mm):</label><input type="number" id="st_g_pneu" value="20.0"></div>
-                <div class="st-row"><label>Mech. Trail (mm):</label><input type="number" id="st_g_mech" value="20.0"></div>
-                <div class="st-row"><label>Steer Angle Calc (°):</label><input type="number" id="st_g_steer" value="20.0"></div>
-                <div class="st-row"><label>G Lateral (g):</label><input type="number" id="st_g_glat" value="1.4"></div>
-                <div class="st-row"><label>Diam. Volante (mm):</label><input type="number" id="st_g_diam" value="260.0"></div>
-            </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, updateDoc, 
+            query, where, orderBy, onSnapshot, doc, serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-            <div class="st-sub-header" style="border-top:2px solid #eee; padding-top:10px;">2. Inputs Esfuerzos (Detalle)</div>
-            <div class="st-row"><label>Paso (mm):</label><input type="number" id="st_e_paso" value="5.0"></div>
-            <div class="st-row"><label>Z Piñón:</label><input type="number" id="st_e_z" value="11"></div>
-            <div class="st-row"><label>Brazo Mangueta (mm):</label><input type="number" id="st_e_brazo" value="36.0"></div>
-            <div class="st-row"><label>Diam. Volante (mm):</label><input type="number" id="st_e_diam" value="260.0"></div>
-            
-            <div style="background:#fff0f0; padding:5px; margin:5px 0; border-radius:4px;">
-                <div class="st-row"><label>Masa (kg):</label><input type="number" id="st_e_masa" value="360.0"></div>
-                <div class="st-row"><label>H CG (mm):</label><input type="number" id="st_e_hcg" value="350.0"></div>
-                <div class="st-row"><label>Trocha (mm):</label><input type="number" id="st_e_trocha" value="1200.0"></div>
-                <div class="st-row"><label>Dist. Ejes (mm):</label><input type="number" id="st_e_wb" value="1650.0"></div>
-                <div class="st-row"><label>% Peso Front:</label><input type="number" id="st_e_pf" value="40.0"></div>
-                <div class="st-row"><label>% LLTD Front:</label><input type="number" id="st_e_lltd" value="50.0"></div>
-                <div class="st-row"><label>Caster (°):</label><input type="number" id="st_e_caster" value="8.0"></div>
-                <div class="st-row"><label>KPI (°):</label><input type="number" id="st_e_kpi" value="9.0"></div>
-                <div class="st-row"><label>Scrub Radius (mm):</label><input type="number" id="st_e_scrub" value="10.0"></div>
-                <div class="st-row"><label>Pneu. Trail (mm):</label><input type="number" id="st_e_pneu" value="20.0"></div>
-                <div class="st-row"><label>Mech. Trail (mm):</label><input type="number" id="st_e_mech" value="20.0"></div>
-                <div class="st-row"><label>Steer Angle (°):</label><input type="number" id="st_e_steer" value="20.0"></div>
-                <div class="st-row"><label>G Lateral (g):</label><input type="number" id="st_e_glat" value="1.4"></div>
-            </div>
-
-            <button class="st-btn" onclick="runSteeringCalc()">CALCULAR DIRECCIÓN</button>
-        </div>
-
-        <div class="st-output-container" id="steering-output">
-            <div style="text-align:center; margin-top:50px; color:#999;">
-                <h3>Esperando cálculo...</h3>
-                <p>Configura los inputs y presiona "CALCULAR DIRECCIÓN"</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="app-container-fatigue">
-        <div class="fatigue-panel">
-            <h2 class="st-header" style="border-bottom-color: #e67e22;">Cálculo Fatiga Masa (Hub)</h2>
-            
-            <div class="st-sub-header" style="color:#e67e22;">Datos Generales</div>
-            <div class="st-row"><label>Masa Auto (kg):</label><input type="number" id="fat_masa" value="365.0"></div>
-            <div class="st-row"><label>Dist. Ejes (mm):</label><input type="number" id="fat_dist_ejes" value="1650"></div>
-            <div class="st-row"><label>Trocha Del (mm):</label><input type="number" id="fat_trocha" value="1200"></div>
-            <div class="st-row"><label>Altura CG (mm):</label><input type="number" id="fat_altura_cg" value="350"></div>
-            <div class="st-row"><label>Reparto Adelante (0-1):</label><input type="number" id="fat_reparto" value="0.40" step="0.01"></div>
-            
-            <div class="st-sub-header" style="color:#e67e22;">Dinámica y G's</div>
-            <div class="st-row"><label>G Frenado:</label><input type="number" id="fat_g_frenado" value="1.7"></div>
-            <div class="st-row"><label>G Curva:</label><input type="number" id="fat_g_curva" value="2.0"></div>
-            
-            <div class="st-sub-header" style="color:#e67e22;">Geometría Masa</div>
-            <div class="st-row"><label>Radio Llanta (mm):</label><input type="number" id="fat_radio_llanta" value="330.2"></div>
-            <div class="st-row"><label>Offset Masa (mm):</label><input type="number" id="fat_offset" value="41.45"></div>
-            <div class="st-row"><label>Mu Tire Long:</label><input type="number" id="fat_mu_long" value="1.4"></div>
-            <div class="st-row"><label>Mu Tire Lat:</label><input type="number" id="fat_mu_lat" value="1.4"></div>
-
-            <div class="st-sub-header" style="color:#e67e22;">MATERIAL</div>
-            <div class="st-row"><label>Sy (MPa):</label><input type="number" id="fat_sy" value="390.0"></div>
-            <div class="st-row"><label>Su (MPa):</label><input type="number" id="fat_su" value="480.0"></div>
-            <div class="st-row"><label>E (MPa):</label><input type="number" id="fat_e" value="71000.0"></div>
-
-            <div class="st-sub-header" style="color:#e67e22;">Geometría Muesca</div>
-            <div class="st-row"><label>r (Radio mm):</label><input type="number" id="fat_r" value="3"></div>
-            <div class="st-row"><label>d (Eje mm):</label><input type="number" id="fat_d" value="55"></div>
-            <div class="st-row"><label>D (Resalte mm):</label><input type="number" id="fat_D" value="70"></div>
-
-            <button class="st-btn fatigue-btn" onclick="runFatigueCalc()">CALCULAR FATIGA</button>
-        </div>
-
-        <div class="st-output-container" id="fatigue-output">
-             <div style="text-align:center; margin-top:50px; color:#999;">
-                <h3>Esperando cálculo...</h3>
-                <p>Presiona "CALCULAR FATIGA" para ver el dashboard.</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="app-container-brakes">
-        <div class="brake-panel">
-            <h2 class="st-header" style="border-bottom-color: #27ae60;">Dimensionamiento de Frenos</h2>
-            
-            <div class="st-sub-header" style="color:#27ae60;">1. Vehículo y Neumático</div>
-            <div class="st-row"><label>Masa Total (kg):</label><input type="number" id="br_masa" value="360.0"></div>
-            <div class="st-row"><label>Dist. Ejes (m):</label><input type="number" id="br_wb" value="1.65" step="0.01"></div>
-            <div class="st-row"><label>Altura CG (m):</label><input type="number" id="br_hcg" value="0.350" step="0.005"></div>
-            <div class="st-row"><label>Dist. Delantera (%):</label><input type="number" id="br_dist" value="0.40" step="0.01"></div>
-            <div class="st-row"><label>Desaceleración (g):</label><input type="number" id="br_decel" value="1.6" step="0.1"></div>
-            <div class="st-row"><label>Mu Neumático:</label><input type="number" id="br_mu" value="1.0" step="0.1"></div>
-            <div class="st-row"><label>Downforce (N):</label><input type="number" id="br_df" value="0"></div>
-            
-            <div class="st-sub-header" style="color:#27ae60;">2. Datos Neumático (175/50 R13)</div>
-            <div class="st-row"><label>Ancho (mm):</label><input type="number" id="br_tire_w" value="175"></div>
-            <div class="st-row"><label>Perfil (%):</label><input type="number" id="br_tire_p" value="50"></div>
-            <div class="st-row"><label>Llanta (in):</label><input type="number" id="br_rim" value="13"></div>
-
-            <div class="st-sub-header" style="color:#27ae60;">3. Caliper y Pastilla</div>
-            <div class="st-row"><label>Caras Fricción:</label><input type="number" id="br_faces" value="2"></div>
-            <div class="st-row"><label>Radio Int (mm):</label><input type="number" id="br_ri" value="77.3"></div>
-            <div class="st-row"><label>Radio Ext (mm):</label><input type="number" id="br_ro" value="102.7"></div>
-            <div class="st-row"><label>Theta 1 (deg):</label><input type="number" id="br_t1" value="0"></div>
-            <div class="st-row"><label>Theta 2 (deg):</label><input type="number" id="br_t2" value="60.0"></div>
-            <div class="st-row"><label>Coef. Fricción (f):</label><input type="number" id="br_f" value="0.40"></div>
-
-            <div class="st-sub-header" style="color:#27ae60;">4. Pedalera y Piloto</div>
-            <div class="st-row"><label>Fuerza Piloto (kg):</label><input type="number" id="br_pilot" value="25"></div>
-            <div class="st-row"><label>Pedal Ratio:</label><input type="number" id="br_pratio" value="5"></div>
-            <div class="st-row"><label>Eficiencia:</label><input type="number" id="br_peff" value="0.9"></div>
-            <div class="st-row"><label>Bias Delantero (0-1):</label><input type="number" id="br_bias" value="0.7"></div>
-
-            <button class="st-btn brake-btn" onclick="runBrakeCalc()">CALCULAR FRENOS</button>
-        </div>
-
-        <div class="st-output-container" id="brake-output">
-             <div style="text-align:center; margin-top:50px; color:#999;">
-                <h3>Esperando cálculo...</h3>
-                <p>Presiona "CALCULAR FRENOS" para ver el dimensionamiento.</p>
-            </div>
-        </div>
-    </div>
-
-<script>
-    // ==========================================
-    // LOGICA DE PESTAÑAS Y NAVEGACION
-    // ==========================================
-    function showApp(appName, tabElement) {
-        // Ocultar todos los contenedores
-        document.getElementById('app-container-v5').style.display = 'none';
-        document.getElementById('app-container-steering').style.display = 'none';
-        document.getElementById('app-container-fatigue').style.display = 'none';
-        document.getElementById('app-container-brakes').style.display = 'none';
-
-        // Quitar clase active de tabs
-        document.querySelectorAll('.g-tab').forEach(t => t.classList.remove('active'));
-
-        // Mostrar el seleccionado
-        if(appName === 'v5') {
-            document.getElementById('app-container-v5').style.display = 'flex';
-            window.dispatchEvent(new Event('resize'));
-        } else if (appName === 'steering') {
-            document.getElementById('app-container-steering').style.display = 'flex';
-        } else if (appName === 'fatigue') {
-            document.getElementById('app-container-fatigue').style.display = 'flex';
-        } else if (appName === 'brakes') {
-            document.getElementById('app-container-brakes').style.display = 'flex';
-        }
-
-        // Activar tab
-        if(tabElement) tabElement.classList.add('active');
-    }
-
-    // ==========================================
-    // LOGICA DE LA APP DE FRENOS (NUEVO CODIGO PORTADO + VIZ 2D POLIGONAL)
-    // ==========================================
-    const b_val = (id) => parseFloat(document.getElementById(id).value) || 0;
-
-    function runBrakeCalc() {
-        // 1. INPUTS VEHICULO
-        const masa_total = b_val('br_masa');
-        const distancia_ejes = b_val('br_wb');
-        const h_cg = b_val('br_hcg');
-        const dist_delantera_pct = b_val('br_dist');
-        const desaceleracion_g = b_val('br_decel');
-        const mu_neumatico = b_val('br_mu');
-        const downforce_N = b_val('br_df');
-
-        // 2. INPUTS NEUMATICO
-        const ancho_nominal = b_val('br_tire_w');
-        const perfil = b_val('br_tire_p');
-        const llanta_in = b_val('br_rim');
-
-        // CALCULO RADIO NEUMATICO
-        const h_flanco = ancho_nominal * (perfil / 100.0);
-        const d_llanta = llanta_in * 25.4;
-        const d_total = d_llanta + (2 * h_flanco);
-        const radio_mm = d_total / 2;
-        const factor_aplastamiento = 0.97;
-        const radio_efectivo_m = (radio_mm * factor_aplastamiento) / 1000.0;
-
-        // 3. CALCULO DINAMICA
-        const g = 9.81;
-        const peso_total_N = masa_total * g;
-        const peso_estatico_del = peso_total_N * dist_delantera_pct;
-        const peso_estatico_tras = peso_total_N * (1 - dist_delantera_pct);
-        const transferencia_peso_N = (peso_total_N * desaceleracion_g * h_cg) / distancia_ejes;
-
-        let normal_delantera = peso_estatico_del + transferencia_peso_N;
-        let normal_trasera = peso_estatico_tras - transferencia_peso_N;
-
-        if (downforce_N > 0) {
-            const ratio_delantero_dinamico = normal_delantera / peso_total_N;
-            normal_delantera += downforce_N * ratio_delantero_dinamico;
-            normal_trasera += downforce_N * (1 - ratio_delantero_dinamico);
-        }
-
-        let alerta_stoppie = "";
-        if (normal_trasera < 0) {
-            alerta_stoppie = `<div style="background:#ffebee; color:#c62828; padding:10px; border-radius:4px; margin-bottom:10px; font-weight:bold;">⚠️ ALERTA CRÍTICA: Las ruedas traseras se levantan (Stoppie).</div>`;
-            normal_trasera = 0;
-        }
-
-        // 4. FUERZA Y TORQUE
-        const fuerza_frenado_del_total = normal_delantera * mu_neumatico;
-        const fuerza_frenado_tras_total = normal_trasera * mu_neumatico;
-
-        const torque_eje_delantero = fuerza_frenado_del_total * radio_efectivo_m;
-        const torque_eje_trasero = fuerza_frenado_tras_total * radio_efectivo_m;
-
-        const torque_rueda_del = torque_eje_delantero / 2;
-        const torque_rueda_tras = torque_eje_trasero / 2;
-
-        const peso_total_dinamico = normal_delantera + normal_trasera;
-        const pct_din_del = (normal_delantera / peso_total_dinamico) * 100;
-        const pct_din_tras = (normal_trasera / peso_total_dinamico) * 100;
-
-        // 5. CALCULO PRESION (DESGASTE UNIFORME)
-        const num_caras = b_val('br_faces');
-        const r_interno_mm = b_val('br_ri');
-        const r_externo_mm = b_val('br_ro');
-        const theta_1_deg = b_val('br_t1');
-        const theta_2_deg = b_val('br_t2');
-        const f = b_val('br_f');
-
-        const ri = r_interno_mm / 1000.0;
-        const ro = r_externo_mm / 1000.0;
-        const theta_rad = (theta_2_deg - theta_1_deg) * (Math.PI / 180.0);
-        const termino_geometrico = (Math.pow(ro, 2) - Math.pow(ri, 2));
-
-        function calcularPresionDesgasteUniforme(torqueTarget) {
-            if (termino_geometrico <= 0) return 0;
-            const T_target = torqueTarget / num_caras;
-            const pa_pascales = (2 * T_target) / (theta_rad * f * ri * termino_geometrico);
-            const pa_bar = (pa_pascales / 1e6) * 10;
-            return pa_bar;
-        }
-
-        const pres_bar_del = calcularPresionDesgasteUniforme(torque_rueda_del);
-        const pres_bar_tras = calcularPresionDesgasteUniforme(torque_rueda_tras);
-        
-        // Conversion a MPa para mostrar (CORRECCION SOLICITADA)
-        const pres_mpa_del = pres_bar_del / 10;
-        const pres_mpa_tras = pres_bar_tras / 10;
-
-        // 6. CALCULO BOMBAS (MASTER CYLINDERS)
-        const fuerza_piloto_kg = b_val('br_pilot');
-        const pedal_ratio = b_val('br_pratio');
-        const eficiencia_pedal = b_val('br_peff');
-        const bias_fuerza_delantera = b_val('br_bias');
-
-        const presion_req_del_mpa = pres_bar_del * 0.1;
-        const presion_req_tras_mpa = pres_bar_tras * 0.1;
-
-        const fuerza_piloto_N = fuerza_piloto_kg * 9.81;
-        const fuerza_total_varillas = fuerza_piloto_N * pedal_ratio * eficiencia_pedal;
-
-        const fuerza_en_bomba_del = fuerza_total_varillas * bias_fuerza_delantera;
-        const fuerza_en_bomba_tras = fuerza_total_varillas * (1 - bias_fuerza_delantera);
-
-        const area_req_bomba_del = fuerza_en_bomba_del / presion_req_del_mpa; // mm2
-        const d_req_bomba_del = 2 * Math.sqrt(area_req_bomba_del / Math.PI);
-
-        const area_req_bomba_tras = fuerza_en_bomba_tras / presion_req_tras_mpa; // mm2
-        const d_req_bomba_tras = 2 * Math.sqrt(area_req_bomba_tras / Math.PI);
-
-        // Seleccion Comercial
-        const medidas_std = {
-            "5/8  (15.88mm)": 15.875,
-            "7/10 (17.78mm)": 17.78,
-            "3/4  (19.05mm)": 19.05,
-            "13/16 (20.64mm)": 20.637,
-            "7/8  (22.23mm)": 22.225,
-            "15/16 (23.81mm)": 23.812,
-            "1.0  (25.40mm)": 25.4
+        // CONFIGURACIÓN DE FIREBASE (YA INTEGRADA)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuRvqTwKVGRU4m8GgfYCQJLiDbTexn58",
+            authDomain: "fsae-presentismo.firebaseapp.com",
+            projectId: "fsae-presentismo",
+            storageBucket: "fsae-presentismo.firebasestorage.app",
+            messagingSenderId: "294700732556",
+            appId: "1:294700732556:web:122fb5e540c49d745f2ba9"
         };
 
-        function buscarMasCercano(val) {
-            let mejor = "-";
-            let diff = Infinity;
-            for (const [k, v] of Object.entries(medidas_std)) {
-                let d = Math.abs(v - val);
-                if (d < diff) { diff = d; mejor = k; }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const logsRef = collection(db, "fsae_logs");
+
+        // --- REFERENCIAS DOM ---
+        const viewCheckin = document.getElementById('view-checkin');
+        const viewCheckout = document.getElementById('view-checkout');
+        const loadingUi = document.getElementById('loading-ui');
+        const footer = document.getElementById('statusFooter');
+        
+        // --- RELOJ EN VIVO ---
+        function updateClock() {
+            const now = new Date();
+            // Usa la configuración regional de Argentina para la hora
+            const timeStr = now.toLocaleTimeString('es-AR', { hour12: false });
+            document.getElementById('live-clock').innerText = timeStr + " hs";
+        }
+        setInterval(updateClock, 1000); // Actualizar cada segundo
+        updateClock(); // Llamada inicial
+
+        // --- LISTENERS DE INTERFAZ (TABS) ---
+        document.getElementById('btn-presence').onclick = () => switchTab('presence');
+        document.getElementById('btn-history').onclick = () => switchTab('history');
+        
+        // --- LISTENERS DE BOTONES (LOGICA) ---
+        document.getElementById('btnStartSession').addEventListener('click', async () => {
+            const nameInput = document.getElementById('inputName');
+            const noteInput = document.getElementById('inputStartNote');
+            const name = nameInput.value.trim();
+            const note = noteInput.value.trim();
+
+            if (!name) {
+                alert("Por favor, escribe tu nombre.");
+                nameInput.focus();
+                return;
             }
-            return mejor;
-        }
 
-        const sug_del = buscarMasCercano(d_req_bomba_del);
-        const sug_tras = buscarMasCercano(d_req_bomba_tras);
-
-        // --- GENERAR HTML OUTPUT ---
-        let html = '';
-        
-        // Tarjeta 1: Dinámica
-        html += `<div class="st-card"><h3>1. Dinámica de Frenado (@ ${desaceleracion_g}g)</h3>`;
-        html += alerta_stoppie;
-        html += `<div class="st-stats-grid">
-            <div class="st-stat-box"><span class="st-stat-label">Transferencia Peso</span><span class="st-stat-value">${transferencia_peso_N.toFixed(0)} N</span></div>
-            <div class="st-stat-box info"><span class="st-stat-label">Distribución Dinámica</span><span class="st-stat-value">${pct_din_del.toFixed(0)}% / ${pct_din_tras.toFixed(0)}%</span></div>
-            <div class="st-stat-box highlight"><span class="st-stat-label">Torque Req. Del (x1)</span><span class="st-stat-value">${torque_rueda_del.toFixed(1)} Nm</span></div>
-            <div class="st-stat-box highlight"><span class="st-stat-label">Torque Req. Tras (x1)</span><span class="st-stat-value">${torque_rueda_tras.toFixed(1)} Nm</span></div>
-        </div></div>`;
-
-        // Tarjeta 2: Presiones (Desgaste Uniforme) - AGREGADO MPA
-        html += `<div class="st-card"><h3>2. Presión Hidráulica Requerida (Caliper)</h3>`;
-        html += `<p style="font-size:0.9rem; color:#666;">Basado en modelo de Desgaste Uniforme con la geometría de pastilla ingresada.</p>`;
-        html += `<div class="st-stats-grid">
-            <div class="st-stat-box success"><span class="st-stat-label">Presión Delantera</span><span class="st-stat-value">${pres_bar_del.toFixed(1)} Bar</span><span class="st-unit">${pres_mpa_del.toFixed(1)} MPa | ${(pres_bar_del*14.5).toFixed(0)} PSI</span></div>
-            <div class="st-stat-box success"><span class="st-stat-label">Presión Trasera</span><span class="st-stat-value">${pres_bar_tras.toFixed(1)} Bar</span><span class="st-unit">${pres_mpa_tras.toFixed(1)} MPa | ${(pres_bar_tras*14.5).toFixed(0)} PSI</span></div>
-        </div></div>`;
-
-        // Tarjeta 3: Visualizacion Geometria
-        html += `<div class="st-card"><h3>Visualización Geometría de Contacto</h3>
-            <div id="brake-viz-container" style="height:450px; background:#fff;"></div>
-        </div>`;
-
-        // Tarjeta 4: Bombas
-        html += `<div class="st-card"><h3>3. Selección de Bombas (Master Cylinders)</h3>`;
-        html += `<table class="st-table">
-            <thead><tr><th>Parámetro</th><th>Bomba Delantera</th><th>Bomba Trasera</th></tr></thead>
-            <tbody>
-                <tr><td>Fuerza en Vástago (N)</td><td>${fuerza_en_bomba_del.toFixed(1)}</td><td>${fuerza_en_bomba_tras.toFixed(1)}</td></tr>
-                <tr><td>Presión Objetivo (Bar)</td><td>${pres_bar_del.toFixed(1)}</td><td>${pres_bar_tras.toFixed(1)}</td></tr>
-                <tr><td><b>Diámetro Calculado</b></td><td style="color:var(--primary); font-weight:bold;">${d_req_bomba_del.toFixed(2)} mm</td><td style="color:var(--primary); font-weight:bold;">${d_req_bomba_tras.toFixed(2)} mm</td></tr>
-                <tr><td><b>Sugerencia Comercial</b></td><td><span class="badge badge-safe">${sug_del}</span></td><td><span class="badge badge-safe">${sug_tras}</span></td></tr>
-            </tbody>
-        </table>
-        <div style="margin-top:10px; font-size:0.85rem; color:#555; background:#f9f9f9; padding:8px; border-radius:4px;">
-            <b>Nota:</b> Bomba más chica = Más presión (Pedal suave/largo). Bomba más grande = Menos presión (Pedal duro/corto).
-        </div>
-        </div>`;
-
-        const container = document.getElementById('brake-output');
-        container.innerHTML = html;
-
-        // LLAMAR A LA NUEVA FUNCION DE DIBUJADO 2D
-        setTimeout(() => {
-            drawBrakeGeometry(r_interno_mm, r_externo_mm, theta_1_deg, theta_2_deg, llanta_in, f);
-        }, 100);
-    }
-
-    function drawBrakeGeometry(ri, ro, t1, t2, rimIn, f) {
-        // CORRECCION CRITICA: USO DE PUNTOS EN LUGAR DE PATH SVG PARA GARANTIZAR FORMA
-        // Esto crea el "trapecio curvo" (Sector Anular) perfectamente
-        
-        const rimMm = rimIn * 25.4;
-        const rimRad = rimMm / 2;
-
-        const rad1 = t1 * Math.PI / 180;
-        const rad2 = t2 * Math.PI / 180;
-
-        // Generar puntos para el arco exterior
-        const x_outer = [], y_outer = [];
-        const steps = 30;
-        for(let i=0; i<=steps; i++) {
-            let t = rad1 + (rad2 - rad1) * (i/steps);
-            x_outer.push(ro * Math.cos(t));
-            y_outer.push(ro * Math.sin(t));
-        }
-
-        // Generar puntos para el arco interior (en reversa para cerrar el loop)
-        const x_inner = [], y_inner = [];
-        for(let i=0; i<=steps; i++) {
-            let t = rad2 - (rad2 - rad1) * (i/steps);
-            x_inner.push(ri * Math.cos(t));
-            y_inner.push(ri * Math.sin(t));
-        }
-
-        // Combinar puntos para el poligono cerrado
-        const polyX = x_outer.concat(x_inner);
-        const polyY = y_outer.concat(y_inner);
-        // Cerrar el poligono
-        polyX.push(polyX[0]);
-        polyY.push(polyY[0]);
-
-        // Calcular puntos medios para etiquetas
-        const midAng = (rad1 + rad2) / 2;
-        const pRi = {x: ri * Math.cos(midAng), y: ri * Math.sin(midAng)};
-        const pRo = {x: ro * Math.cos(midAng), y: ro * Math.sin(midAng)};
-        const pMid = {x: (ri+ro)/2 * Math.cos(midAng), y: (ri+ro)/2 * Math.sin(midAng)};
-
-        // Definir traces
-        const tracePad = {
-            x: polyX, y: polyY,
-            fill: 'toself',
-            fillcolor: 'rgba(214, 40, 40, 0.3)',
-            line: {color: '#d62828', width: 2},
-            mode: 'lines',
-            type: 'scatter',
-            hoverinfo: 'skip'
-        };
-
-        // Trace para la llanta (circulo punteado)
-        // Generamos puntos de circulo completo
-        const rimX = [], rimY = [];
-        for(let i=0; i<=60; i++) {
-            let t = (i/60) * 2 * Math.PI;
-            rimX.push(rimRad * Math.cos(t));
-            rimY.push(rimRad * Math.sin(t));
-        }
-        const traceRim = {
-            x: rimX, y: rimY,
-            mode: 'lines',
-            line: {color: '#7f8c8d', dash: 'dashdot', width: 1},
-            type: 'scatter',
-            hoverinfo: 'skip'
-        };
-
-        // Annotations
-        const layoutAnnotations = [
-            { x: 0, y: rimRad, text: `Ø Llanta: ${rimMm.toFixed(0)}mm`, showarrow: true, arrowhead: 1, ax: 0, ay: -20, font: {color: '#7f8c8d'} },
-            { x: pRi.x, y: pRi.y, text: `Ri=${ri}`, showarrow: true, arrowhead: 1, ax: -20, ay: 20 },
-            { x: pRo.x, y: pRo.y, text: `Re=${ro}`, showarrow: true, arrowhead: 1, ax: 20, ay: 20 },
-            { x: pMid.x, y: pMid.y, text: `μ=${f}`, showarrow: false, font: {size: 16, color: '#c0392b', weight: 'bold'} },
-            { x: 0, y: 0, text: `θ = ${(t2-t1).toFixed(1)}°`, showarrow: false, yshift: -10, font: {size:10, color:'#555'} }
-        ];
-
-        // Definir layout cuadrado para que no se deforme
-        const limit = rimRad * 1.3;
-        const layout = {
-            showlegend: false,
-            autosize: true,
-            margin: {l:20, r:20, b:20, t:20},
-            xaxis: { range: [-limit, limit], showgrid: false, zeroline: false, visible: false, scaleanchor: "y", scaleratio: 1 },
-            yaxis: { range: [-limit, limit], showgrid: false, zeroline: false, visible: false },
-            annotations: layoutAnnotations,
-            shapes: [
-                // Lineas radiales guía desde el centro (opcional, para ver el angulo)
-                {type: 'line', x0:0, y0:0, x1: ro*Math.cos(rad1), y1: ro*Math.sin(rad1), line:{color:'#eee', dash:'dot'}},
-                {type: 'line', x0:0, y0:0, x1: ro*Math.cos(rad2), y1: ro*Math.sin(rad2), line:{color:'#eee', dash:'dot'}}
-            ]
-        };
-
-        Plotly.newPlot('brake-viz-container', [traceRim, tracePad], layout, {displayModeBar: false, staticPlot: true});
-    }
-
-    // ==========================================
-    // LOGICA DE LA APP DE FATIGA (NUEVO CODIGO PORTADO)
-    // ==========================================
-    
-    // Función de interpolación lineal equivalente a np.interp
-    function interp(x, xp, fp) {
-        if (x <= xp[0]) return fp[0];
-        if (x >= xp[xp.length - 1]) return fp[fp.length - 1];
-        
-        // Buscar el indice
-        let i = 0;
-        while (x > xp[i+1]) i++;
-        
-        // Interpolar
-        let t = (x - xp[i]) / (xp[i+1] - xp[i]);
-        return fp[i] + t * (fp[i+1] - fp[i]);
-    }
-
-    function obtener_factores_q_aluminio(radio_mm) {
-        // DATOS FLEXIÓN (q)
-        const r_q_data = [0.0, 0.25, 0.50, 0.75, 1.00, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00];
-        const q_data   = [0.0, 0.32, 0.42, 0.51, 0.58, 0.67, 0.73, 0.77, 0.80, 0.82, 0.84];
-
-        // DATOS TORSIÓN (qs)
-        const r_qs_data = [0.0, 0.25, 0.50, 1.00, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00];
-        const qs_data   = [0.0, 0.45, 0.61, 0.76, 0.83, 0.87, 0.89, 0.91, 0.93, 0.94];
-
-        const q_calc = interp(radio_mm, r_q_data, q_data);
-        const qs_calc = interp(radio_mm, r_qs_data, qs_data);
-
-        return [q_calc, qs_calc];
-    }
-
-    function obtener_factores_K_concentracion(r, d, D) {
-        if (d <= 0) return [1.0, 1.0];
-
-        let rd = r / d;
-        let Dd = D / d;
-
-        if (rd < 0) rd = 0;
-
-        // FIGURA A-15-9 (FLEXIÓN - Kt)
-        const curves_bending = {
-            3.00: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [10.0, 2.62, 1.95, 1.68, 1.53, 1.43, 1.36]],
-            1.50: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [8.0, 2.15, 1.76, 1.58, 1.46, 1.38, 1.32]],
-            1.10: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [6.0, 1.72, 1.51, 1.40, 1.32, 1.27, 1.23]],
-            1.02: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [5.0, 1.40, 1.28, 1.22, 1.18, 1.15, 1.12]]
-        };
-
-        // FIGURA A-15-8 (TORSIÓN - Kts)
-        const curves_torsion = {
-            2.00: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [8.0, 1.76, 1.47, 1.34, 1.26, 1.21, 1.17]],
-            1.33: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [7.0, 1.58, 1.38, 1.28, 1.21, 1.17, 1.14]],
-            1.20: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [6.0, 1.48, 1.31, 1.23, 1.18, 1.14, 1.11]],
-            1.09: [[0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], [5.0, 1.32, 1.22, 1.16, 1.12, 1.09, 1.07]]
-        };
-
-        function interpolar_chart(data_dict, target_rd, target_Dd) {
-            // Ordenar keys
-            const known_Dd = Object.keys(data_dict).map(Number).sort((a,b) => a-b);
-            let kt_temp_vals = [];
-            
-            for (let curve_Dd of known_Dd) {
-                // Hay que usar toFixed o similar para acceder al objeto si las keys son strings, pero en JS object keys son strings
-                // Buscamos la key original que matchee el numero
-                let key = Object.keys(data_dict).find(k => Math.abs(parseFloat(k) - curve_Dd) < 0.001);
-                let arrays = data_dict[key];
-                let val = interp(target_rd, arrays[0], arrays[1]);
-                kt_temp_vals.push(val);
+            try {
+                await addDoc(logsRef, {
+                    name: name,
+                    startTime: serverTimestamp(),
+                    startNote: note,
+                    isActive: true,
+                    endTime: null,
+                    endNote: ""
+                });
+                // Feedback visual inmediato (opcional, el snapshot lo confirmará)
+                loadingUi.style.display = 'block';
+                viewCheckin.style.display = 'none';
+            } catch (e) {
+                console.error(e);
+                alert("Error de conexión. Verifica tu internet.");
             }
-            return interp(target_Dd, known_Dd, kt_temp_vals);
-        }
+        });
 
-        const Kt_res = interpolar_chart(curves_bending, rd, Dd);
-        const Kts_res = interpolar_chart(curves_torsion, rd, Dd);
+        document.getElementById('btnEndSession').addEventListener('click', async () => {
+            const docId = document.getElementById('activeDocId').value;
+            const endNote = document.getElementById('inputEndNote').value.trim();
+            
+            if (!docId) return;
 
-        return [Kt_res, Kts_res];
-    }
+            try {
+                const sessionDoc = doc(db, "fsae_logs", docId);
+                await updateDoc(sessionDoc, {
+                    isActive: false,
+                    endTime: serverTimestamp(),
+                    endNote: endNote
+                });
+            } catch (e) {
+                console.error(e);
+                alert("Error al finalizar sesión.");
+            }
+        });
 
-    function runFatigueCalc() {
-        // --- INPUTS ---
-        const f_val = (id) => parseFloat(document.getElementById(id).value) || 0;
+        // --- MOTOR DE TIEMPO REAL (SNAPSHOTS) ---
+        const activeQuery = query(logsRef, where("isActive", "==", true));
+        onSnapshot(activeQuery, (snapshot) => {
+            loadingUi.style.display = 'none';
+            if (!snapshot.empty) {
+                const docData = snapshot.docs[0].data();
+                renderActiveSession(docData, snapshot.docs[0].id);
+            } else {
+                renderFreeState();
+            }
+        }, (error) => {
+            console.error("Error en snapshot activo:", error);
+            footer.innerText = "Error de conexión";
+            footer.className = "status-footer status-loading";
+        });
 
-        const masa_auto = f_val('fat_masa');
-        const dist_ejes = f_val('fat_dist_ejes');
-        const trocha_del = f_val('fat_trocha');
-        const altura_cg = f_val('fat_altura_cg');
-        const reparto_adelante = f_val('fat_reparto');
-
-        const g_frenado = f_val('fat_g_frenado');
-        const g_curva = f_val('fat_g_curva');
-
-        const radio_llanta = f_val('fat_radio_llanta');
-        const offset_masa = f_val('fat_offset');
-        const mu_tire_long = f_val('fat_mu_long');
-        const mu_tire_lat = f_val('fat_mu_lat');
-
-        const Sy = f_val('fat_sy');
-        const Su = f_val('fat_su');
-        const E = f_val('fat_e');
-
-        const r = f_val('fat_r');
-        const d = f_val('fat_d');
-        const D = f_val('fat_D');
-        
-        const g = 9.81;
-
-        // --- CALCULOS ---
-        const peso_total = masa_auto * g;
-        const peso_estatico_del = peso_total * reparto_adelante;
-        const transferencia_long = (peso_total * g_frenado * altura_cg) / dist_ejes;
-        const peso_delantero_dinamico = peso_estatico_del + transferencia_long;
-        const transferencia_lat = (peso_delantero_dinamico * g_curva * altura_cg) / trocha_del;
-        const Fz_dinamica = (peso_delantero_dinamico / 2) + transferencia_lat;
-
-        const Fx_req = Fz_dinamica * g_frenado;
-        const Fy_req = Fz_dinamica * g_curva;
-
-        const Fx_frenado = -Math.min(Fx_req, Fz_dinamica * mu_tire_long);
-        const Fy_lateral = Math.min(Fy_req, Fz_dinamica * mu_tire_lat);
-
-        // Factores Concentracion
-        const [q, qs] = obtener_factores_q_aluminio(r);
-        const [Kt, Kts] = obtener_factores_K_concentracion(r, d, D);
-
-        const Kf = 1 + q * (Kt - 1);
-        const Kfs = 1 + qs * (Kts - 1);
-
-        // Momentos
-        const Momento_Flector = (Fz_dinamica * offset_masa) + (Fy_lateral * radio_llanta);
-        const Torque_Frenado = Math.abs(Fx_frenado * radio_llanta); 
-
-        // Propiedades Sección
-        const J = (Math.PI * Math.pow(d, 4)) / 32;
-        const I = (Math.PI * Math.pow(d, 4)) / 64;
-
-        // Tensiones Nominales
-        const sigma_flex_nom = (Momento_Flector * (d/2)) / I;
-        const tau_tor_nom = (Torque_Frenado * (d/2)) / J;
-
-        // Componentes Media y Alternante
-        const sigma_m_flex = 0;
-        const sigma_a_flex = sigma_flex_nom * Kf;
-
-        const tau_max_real = tau_tor_nom * Kfs;
-        const tau_m_tor = tau_max_real / 2;
-        const tau_a_tor = tau_max_real / 2;
-
-        // Von Mises
-        const sigma_a_eq = Math.sqrt(Math.pow(sigma_a_flex, 2) + 3 * Math.pow(tau_a_tor, 2));
-        const sigma_m_eq = Math.sqrt(Math.pow(sigma_m_flex, 2) + 3 * Math.pow(tau_m_tor, 2));
-
-        // Limite Fatiga
-        const Se_prime = 0.4 * Su;
-        const ka = 0.87;
-        const kb = 0.85;
-        const kc = 1.0;
-        const kd = 1.0;
-        const ke = 0.814;
-        const Se = Se_prime * ka * kb * kc * kd * ke;
-
-        // Soderberg
-        const termino_a = sigma_a_eq / Se;
-        const termino_m = sigma_m_eq / Sy;
-        const n = 1 / (termino_a + termino_m);
-
-        // Falla Estática
-        const sigma_max_total = sigma_m_eq + sigma_a_eq;
-        const n_yield = Sy / sigma_max_total;
-        
-        // Vida Util
-        let sigma_rev_eq = 0;
-        if (sigma_m_eq >= Sy) {
-            sigma_rev_eq = 999999;
-        } else {
-            sigma_rev_eq = sigma_a_eq / (1 - (sigma_m_eq / Sy));
-        }
-
-        const N1 = 1000.0;
-        const S1 = 0.9 * Su;
-        const N2 = 5e8;
-        const S2 = Se;
-        const b = Math.log10(S1 / S2) / Math.log10(N1 / N2);
-        const a = S1 / Math.pow(N1, b);
-        
-        let vida_status = "";
-        let vida_detalle = "";
-
-        if (sigma_rev_eq <= Se) {
-            vida_status = `<span class="badge badge-safe">VIDA INFINITA TEÓRICA</span>`;
-            vida_detalle = "La tensión está por debajo del límite de fatiga corregido (> 500M ciclos).";
-        } else if (sigma_rev_eq >= S1) {
-            vida_status = `<span class="badge badge-danger">VIDA MUY CORTA</span>`;
-            vida_detalle = "Zona de fatiga de bajo ciclaje (< 1,000 ciclos). Peligroso.";
-        } else {
-            const N_vida = Math.pow((sigma_rev_eq / a), (1/b));
-            const vueltas_vida = N_vida / 8; 
-            vida_status = `<span class="badge badge-warning">VIDA FINITA</span>`;
-            vida_detalle = `Ciclos hasta falla: <b>${Math.floor(N_vida).toLocaleString()}</b><br>Vueltas circuito aprox: <b>${Math.floor(vueltas_vida).toLocaleString()}</b>`;
-        }
-
-        // --- CONSTRUCCIÓN DEL DASHBOARD HTML ---
-        let html = '';
-
-        // Tarjeta 1: Factores de Concentración
-        html += '<div class="st-card"><h3>1. Factores de Concentración de Esfuerzos</h3>';
-        html += '<table class="st-table"><thead><tr><th>Parámetro</th><th>Flexión</th><th>Torsión</th></tr></thead><tbody>';
-        html += `<tr><td>Sensibilidad de Muesca (q)</td><td>${q.toFixed(3)}</td><td>${qs.toFixed(3)}</td></tr>`;
-        html += `<tr><td>Factor Geométrico (Kt)</td><td>${Kt.toFixed(2)}</td><td>${Kts.toFixed(2)}</td></tr>`;
-        html += `<tr><td><b>Factor Fatiga (Kf)</b></td><td style="color:var(--primary); font-weight:bold;">${Kf.toFixed(2)}</td><td style="color:var(--primary); font-weight:bold;">${Kfs.toFixed(2)}</td></tr>`;
-        html += '</tbody></table></div>';
-
-        // Tarjeta 2: Análisis de Esfuerzos y Soderberg
-        let nClass = n < 1 ? 'danger' : (n < 1.5 ? 'warning' : 'success');
-        
-        html += '<div class="st-card"><h3>2. Criterio de Soderberg (Fatiga)</h3>';
-        html += '<div class="st-stats-grid">';
-        html += `<div class="st-stat-box"><span class="st-stat-label">Sigma Alternante Eq</span><span class="st-stat-value">${sigma_a_eq.toFixed(1)} MPa</span></div>`;
-        html += `<div class="st-stat-box"><span class="st-stat-label">Sigma Media Eq</span><span class="st-stat-value">${sigma_m_eq.toFixed(1)} MPa</span></div>`;
-        html += `<div class="st-stat-box info"><span class="st-stat-label">Límite Fatiga (Se)</span><span class="st-stat-value">${Se.toFixed(1)} MPa</span></div>`;
-        html += `<div class="st-stat-box ${nClass}"><span class="st-stat-label">Factor Seguridad (n)</span><span class="st-stat-value">${n.toFixed(3)}</span></div>`;
-        html += '</div></div>';
-
-        // Tarjeta 3: Estática y Vida Útil
-        let staticBadge = n_yield < 1.0 ? `<span class="badge badge-danger">FALLA ESTÁTICA</span>` : `<span class="badge badge-safe">RESISTE IMPACTO</span>`;
-        
-        html += '<div class="st-card"><h3>3. Análisis Estático y Vida Útil</h3>';
-        html += '<table class="st-table" style="margin-bottom:15px;">';
-        html += `<tr><td>Tensión Máxima Pico</td><td style="text-align:right;">${sigma_max_total.toFixed(1)} MPa</td></tr>`;
-        html += `<tr><td>Límite Fluencia (Sy)</td><td style="text-align:right;">${Sy.toFixed(1)} MPa</td></tr>`;
-        html += `<tr><td><b>Estado Estático</b></td><td style="text-align:right;">${staticBadge} (n=${n_yield.toFixed(2)})</td></tr>`;
-        html += '</table>';
-        
-        html += `<div style="background:#f9f9f9; padding:15px; border-radius:6px; border-left:4px solid #666;">`;
-        html += `<div style="margin-bottom:5px;"><b>Tensión Reversible Eq:</b> ${sigma_rev_eq.toFixed(1)} MPa</div>`;
-        html += `<div style="margin-bottom:5px;"><b>Estado Vida:</b> ${vida_status}</div>`;
-        html += `<div style="font-size:0.9rem; color:#555;">${vida_detalle}</div>`;
-        html += '</div></div>';
-
-        document.getElementById('fatigue-output').innerHTML = html;
-    }
-
-    // ==========================================
-    // LOGICA DE LA APP DE DIRECCION (CODIGO ORIGINAL V5)
-    // ==========================================
-    const s_val = (id) => parseFloat(document.getElementById(id).value) || 0;
-    
-    function runSteeringCalc() {
-        const container = document.getElementById('steering-output');
-        container.innerHTML = ""; 
-        const htmlGeo = calculateSteeringGeometricHTML();
-        const htmlStress = calculateSteeringStressHTML();
-        container.innerHTML = htmlGeo + htmlStress;
-    }
-
-    function calculateSteeringGeometricHTML() {
-        // --- INPUTS ---
-        const giro_volante_req = s_val('st_giro_vol');
-        const giro_rueda_req = s_val('st_giro_rueda');
-        const fuerza_objetivo_kg = s_val('st_obj_kg');
-        const masa = s_val('st_g_masa');
-        const h_cg = s_val('st_g_hcg');
-        const trocha = s_val('st_g_trocha');
-        const peso_front_pct = s_val('st_g_pf');
-        const lltd_front_pct = s_val('st_g_lltd');
-        const caster_deg = s_val('st_g_caster');
-        const kpi_deg = s_val('st_g_kpi');
-        const scrub_radius = s_val('st_g_scrub');
-        const pneu_trail = s_val('st_g_pneu');
-        const mech_trail = s_val('st_g_mech');
-        const steer_angle_calc = s_val('st_g_steer');
-        const g_lat = s_val('st_g_glat');
-        const diam_volante = s_val('st_g_diam');
-        const g = 9.81;
-
-        // --- CÁLCULOS FÍSICOS ---
-        const peso_front_static = (masa * g) * (peso_front_pct / 100);
-        const delta_w_lat_front = (masa * g * g_lat * h_cg / trocha) * (lltd_front_pct / 100);
-        const fz_outer = (peso_front_static / 2) + delta_w_lat_front;
-        const fy_outer = fz_outer * g_lat;
-        const total_trail = mech_trail + pneu_trail;
-        const mz_aligning = fy_outer * total_trail; 
-        const kpi_rad = kpi_deg * Math.PI / 180;
-        const caster_rad = caster_deg * Math.PI / 180;
-        const steer_rad = steer_angle_calc * Math.PI / 180;
-        const term_kpi = scrub_radius * Math.sin(kpi_rad);
-        const term_caster = mech_trail * Math.sin(caster_rad);
-        const mz_jacking = fz_outer * (term_kpi + term_caster) * Math.sin(steer_rad);
-        const mz_total_nm = (mz_aligning + mz_jacking) / 1000.0;
-
-        let html = `<div class="st-card">
-            <h3>1. Análisis Geometría & Selección Piñón</h3>
-            <div class="st-stats-grid">
-                <div class="st-stat-box info"><span class="st-stat-label">Torque Alineación</span><span class="st-stat-value">${(mz_aligning/1000).toFixed(2)} <span class="st-unit">Nm</span></span></div>
-                <div class="st-stat-box info"><span class="st-stat-label">Torque Jacking</span><span class="st-stat-value">${(mz_jacking/1000).toFixed(2)} <span class="st-unit">Nm</span></span></div>
-                <div class="st-stat-box highlight"><span class="st-stat-label">Torque TOTAL Kingpin</span><span class="st-stat-value">${mz_total_nm.toFixed(2)} <span class="st-unit">Nm</span></span><span class="st-unit" style="font-size:0.7rem">@ ${g_lat}G Lateral</span></div>
-                <div class="st-stat-box"><span class="st-stat-label">Objetivo Piloto</span><span class="st-stat-value">${fuerza_objetivo_kg.toFixed(1)} <span class="st-unit">kg</span></span></div>
-            </div>
-            <table class="st-table"><thead><tr><th>Paso</th><th>Z</th><th>Travel</th><th>Brazo (mm)</th><th>D.Prim</th><th>F. Manos</th><th>Estado</th></tr></thead><tbody>`;
-
-        const pasos_a_probar = [5, 6, 8, 10, 12, 12.5, 15];
-        const dientes_a_probar = [10, 11, 12, 13, 14, 15];
-        const seno_rueda_tabla = Math.sin(giro_rueda_req * Math.PI / 180);
-        const fraccion_vuelta = giro_volante_req / 360.0;
-
-        pasos_a_probar.forEach(paso => {
-            dientes_a_probar.forEach(z => {
-                const perimetro_pinion = paso * z;
-                const travel = perimetro_pinion * fraccion_vuelta;
-                const brazo = travel / seno_rueda_tabla;
-                const modulo = paso / Math.PI;
-                const d_primitivo = modulo * z;
-                let f_manos_kg = 0;
-                if (brazo > 0) {
-                    const f_cremallera = (mz_total_nm * 1000.0) / brazo;
-                    const t_pinion = f_cremallera * (d_primitivo / 2.0);
-                    const f_manos_n = t_pinion / (diam_volante / 2.0);
-                    f_manos_kg = f_manos_n / g;
-                }
-                if (brazo >= 30 && brazo <= 110) {
-                    let badges = "";
-                    if (Math.abs(f_manos_kg - fuerza_objetivo_kg) < 1.5) { badges += `<span class="badge badge-confort">CONFORT</span>`; }
-                    if (Math.abs(brazo - Math.round(brazo)) < 0.1) { badges += `<span class="badge badge-optimo">OPTIMO MM</span>`; }
-                    html += `<tr><td>${paso}</td><td><b>${z}</b></td><td>${travel.toFixed(1)}</td><td style="font-weight:bold; color:var(--primary)">${brazo.toFixed(1)}</td><td>${d_primitivo.toFixed(1)}</td><td style="font-weight:bold;">${f_manos_kg.toFixed(1)} kg</td><td>${badges}</td></tr>`;
+        const historyQuery = query(logsRef, orderBy("startTime", "desc"));
+        onSnapshot(historyQuery, (snapshot) => {
+            const list = document.getElementById('historyList');
+            list.innerHTML = "";
+            const emptyMsg = document.getElementById('emptyHistory');
+            
+            let hasHistory = false;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if(!data.isActive) {
+                    renderHistoryItem(data);
+                    hasHistory = true;
                 }
             });
+            emptyMsg.style.display = hasHistory ? "none" : "block";
+            emptyMsg.innerText = hasHistory ? "" : "No hay registros finalizados aún.";
         });
-        html += `</tbody></table></div>`;
-        return html;
-    }
 
-    function calculateSteeringStressHTML() {
-        const paso = s_val('st_e_paso');
-        const z = s_val('st_e_z');
-        const brazo_direccion = s_val('st_e_brazo');
-        const diametro_volante = s_val('st_e_diam');
-        const masa = s_val('st_e_masa');
-        const h_cg = s_val('st_e_hcg');
-        const trocha = s_val('st_e_trocha');
-        const peso_front_pct = s_val('st_e_pf');
-        const lltd_front_pct = s_val('st_e_lltd');
-        const caster_deg = s_val('st_e_caster');
-        const kpi_deg = s_val('st_e_kpi');
-        const scrub_radius = s_val('st_e_scrub');
-        const pneu_trail = s_val('st_e_pneu');
-        const mech_trail = s_val('st_e_mech');
-        const steer_angle_deg = s_val('st_e_steer');
-        const g_lat = s_val('st_e_glat');
-        const g = 9.81;
-
-        const modulo = paso / Math.PI;
-        const diametro_primitivo = modulo * z;
-        const diametro_exterior = (z + 2) * modulo;
-        const peso_front_static = (masa * g) * (peso_front_pct / 100);
-        const delta_w_lat_front = (masa * g * g_lat * h_cg / trocha) * (lltd_front_pct / 100);
-        const fz_outer = (peso_front_static / 2) + delta_w_lat_front;
-        const fy_outer = fz_outer * g_lat;
-        const total_trail = mech_trail + pneu_trail;
-        const mz_aligning = fy_outer * total_trail; 
-        const kpi_rad = kpi_deg * Math.PI / 180;
-        const caster_rad = caster_deg * Math.PI / 180;
-        const steer_rad = steer_angle_deg * Math.PI / 180;
-        const term_kpi = scrub_radius * Math.sin(kpi_rad);
-        const term_caster = mech_trail * Math.sin(caster_rad);
-        const mz_jacking = fz_outer * (term_kpi + term_caster) * Math.sin(steer_rad);
-        const mz_total = mz_aligning + mz_jacking;
-        const fuerza_cremallera = mz_total / brazo_direccion;
-        const torque_pinion = fuerza_cremallera * (diametro_primitivo / 2);
-        const fuerza_manos_n = torque_pinion / (diametro_volante / 2);
-        const fuerza_manos_kg = fuerza_manos_n / g;
-
-        return `<div class="st-card">
-            <h3>2. Detalle de Esfuerzos (Caso Específico)</h3>
-            <div class="st-stats-grid">
-                <div class="st-stat-box"><span class="st-stat-label">Diámetro Primitivo</span><span class="st-stat-value">${diametro_primitivo.toFixed(2)} <span class="st-unit">mm</span></span></div>
-                <div class="st-stat-box"><span class="st-stat-label">Diámetro Exterior</span><span class="st-stat-value">${diametro_exterior.toFixed(2)} <span class="st-unit">mm</span></span></div>
-                 <div class="st-stat-box"><span class="st-stat-label">Módulo</span><span class="st-stat-value">${modulo.toFixed(3)}</span></div>
-            </div>
-            <div style="background:#fff5f5; border:1px solid #ffcccc; padding:15px; border-radius:6px;">
-                <h4 style="margin:0 0 10px 0; color:#c0392b;">Resultados Finales de Carga</h4>
-                <table class="st-table" style="background:transparent; margin:0;">
-                    <tr><td>Torque Autoalineación:</td><td style="text-align:right"><b>${(mz_aligning/1000).toFixed(2)} Nm</b></td></tr>
-                    <tr><td>Torque Weight Jacking:</td><td style="text-align:right"><b>${(mz_jacking/1000).toFixed(2)} Nm</b></td></tr>
-                    <tr style="border-top:2px solid #ddd"><td><b>Fuerza en Cremallera:</b></td><td style="text-align:right; color:var(--primary); font-size:1.1em;"><b>${fuerza_cremallera.toFixed(1)} N</b></td></tr>
-                    <tr><td><b>FUERZA EN MANOS:</b></td><td style="text-align:right; font-size:1.2em;"><b>${fuerza_manos_kg.toFixed(2)} kg</b> <span style="font-size:0.8em; color:#666">(${fuerza_manos_n.toFixed(1)} N)</span></td></tr>
-                </table>
-            </div>
-        </div>`;
-    }
-
-    // ==========================================
-    // 1. UTILIDADES MATEMÁTICAS BÁSICAS (CODIGO ORIGINAL V5)
-    // ==========================================
-    function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
-    function norm(v) { return Math.sqrt(v[0]**2 + v[1]**2 + v[2]**2); }
-    function normalize(v) {
-        const n = norm(v);
-        if (n === 0) return [0, 0, 0];
-        return [v[0]/n, v[1]/n, v[2]/n];
-    }
-    function cross(a, b) {
-        return [a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0]];
-    }
-
-    // Solver de sistema lineal (Gaussian Elimination) - Versión completa y segura
-    function solveLinearSystem(A, B) {
-        let n = B.length;
-        let M = A.map(row => [...row]);
-        let x = [...B];
-        for (let i = 0; i < n; i++) {
-            let max = Math.abs(M[i][i]);
-            let row = i;
-            for (let k = i + 1; k < n; k++) {
-                if (Math.abs(M[k][i]) > max) { max = Math.abs(M[k][i]); row = k; }
-            }
-            for (let k = i; k < n; k++) {
-                let t = M[row][k]; M[row][k] = M[i][k]; M[i][k] = t;
-            }
-            let t = x[row]; x[row] = x[i]; x[i] = t;
-            for (let k = i + 1; k < n; k++) {
-                let c = -M[k][i] / M[i][i];
-                for (let j = i; j < n; j++) { M[k][j] += c * M[i][j]; }
-                x[k] += c * x[i];
-            }
-        }
-        let res = new Array(n).fill(0);
-        for (let i = n - 1; i > -1; i--) {
-            let s = 0;
-            for (let j = i + 1; j < n; j++) { s += M[i][j] * res[j]; }
-            res[i] = (x[i] - s) / M[i][i];
-        }
-        return res;
-    }
-
-    // ==========================================
-    // 2. GESTIÓN DE DATOS E INPUTS (CODIGO ORIGINAL V5)
-    // ==========================================
-    let editingAxle = 'front';
-    const val = (id) => parseFloat(document.getElementById(id).value) || 0;
-    const col = (id) => document.getElementById(id).value;
-
-    const vehicleData = {
-        front: {
-            tire_center: [0.0, 0.58665, 0.25465],
-            lwb_f: [0.12517, 0.26785, 0.14113], lwb_r: [-0.12483, 0.26785, 0.14113], lwb_u: [-0.0031, 0.58396, 0.16439],
-            uwb_f: [0.10508, 0.24562, 0.29095], uwb_r: [-0.14420, 0.24562, 0.27199], uwb_u: [-0.03018, 0.55345, 0.35703], 
-            push_c: [-0.00277, 0.2, 0.4], push_u: [-0.00277, 0.55, 0.175],
-            tie_c: [-0.200, 0.26785, 0.167680], tie_u: [-0.075, 0.58032, 0.17032],
-            p_trail_mm: 30.0
-        },
-        rear: {
-            tire_center: [0.0, 0.58665, 0.25465],
-            lwb_f: [0.125, 0.30917, 0.14776], lwb_r: [-0.125, 0.30917, 0.14776], lwb_u: [0.0, 0.58405, 0.16439], 
-            uwb_f: [0.12358, 0.28682, 0.27015], uwb_r: [-0.12358, 0.28682, 0.30771], uwb_u: [0.0, 0.55337, 0.35805], 
-            push_c: [0.0, 0.2, 0.4], push_u: [0.0, 0.55, 0.175],
-            tie_c: [0.100, 0.270, 0.160], tie_u: [0.100, 0.520, 0.160],
-            p_trail_mm: 30.0
-        }
-    };
-
-    function switchTab(axle) {
-        editingAxle = axle; 
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); 
-        event.target.classList.add('active'); 
-        renderInputs();
-    }
-
-    function renderInputs() {
-        const d = vehicleData[editingAxle];
-        const container = document.getElementById('active-inputs-container');
-        container.innerHTML = `<h4>Hardpoints ${editingAxle.toUpperCase()} [X, Y, Z]</h4>`;
-        
-        const points = {
-            'tire_center':'Centro Rueda',
-            'lwb_f':'LWB Chas F','lwb_r':'LWB Chas R','lwb_u':'LWB Uprt',
-            'uwb_f':'UWB Chas F','uwb_r':'UWB Chas R','uwb_u':'UWB Uprt',
-            'push_c':'Push Chas','push_u':'Push Uprt',
-            'tie_c':editingAxle==='front'?'Tie Chas':'Toe Chas',
-            'tie_u':editingAxle==='front'?'Tie Uprt':'Toe Uprt'
-        };
-
-        for (const [k, l] of Object.entries(points)) { 
-            container.innerHTML += `
-            <div class="row"><label>${l}</label>
-            <div class="coord-inputs">
-                <input type="number" value="${d[k][0]}" step="0.005" onchange="updateData('${k}',0,this.value)">
-                <input type="number" value="${d[k][1]}" step="0.005" onchange="updateData('${k}',1,this.value)">
-                <input type="number" value="${d[k][2]}" step="0.005" onchange="updateData('${k}',2,this.value)">
-            </div></div>`; 
-        }
-        container.innerHTML += `<div class="row" style="margin-top:5px; border-top:1px solid #eee; padding-top:5px;"><label>Pneu. Trail (mm):</label><input type="number" value="${d.p_trail_mm}" onchange="updateScalar('p_trail_mm',this.value)"></div>`;
-    }
-
-    function updateData(k,i,v){ vehicleData[editingAxle][k][i]=parseFloat(v); } 
-    function updateScalar(k,v){ vehicleData[editingAxle][k]=parseFloat(v); }
-    
-    function getTireDims() { 
-        const w=val('tire_w_inp');
-        const ar=val('tire_ar_inp')/100;
-        const rimD=val('rim_d_inp')*25.4;
-        const swH=w*ar; 
-        return { tire_od: rimD+(2*swH), tire_width: w, rim_od: rimD, sidewall_h: swH }; 
-    }
-
-    // ==========================================
-    // 3. SOLVER FÍSICO (CODIGO ORIGINAL V5)
-    // ==========================================
-    function calculateAxle(axleType, data, inputs) {
-        const g = 9.81;
-        const tc = data.tire_center;
-        
-        const vl_f = normalize(sub(data.lwb_u, data.lwb_f));
-        const vl_r = normalize(sub(data.lwb_u, data.lwb_r));
-        const vu_f = normalize(sub(data.uwb_u, data.uwb_f));
-        const vu_r = normalize(sub(data.uwb_u, data.uwb_r));
-        const vp   = normalize(sub(data.push_u, data.push_c));
-        const vt   = normalize(sub(data.tie_u, data.tie_c));
-
-        const total_m = inputs.m_total;
-        const unsprung = (2 * inputs.unsprung_f) + (2 * inputs.unsprung_r);
-        const suspended = total_m - unsprung; 
-        
-        let mass_corner = 0;
-        let trans_lo = 0;
-        let trans_la = 0;
-
-        if(axleType === 'front'){
-            const susp_f = suspended * inputs.weight_dist_front;
-            const static_f = (susp_f / 2) + inputs.unsprung_f;
-            trans_lo = (total_m * inputs.g_braking * inputs.cg_height) / inputs.wheelbase;
-            const dyn_f = (static_f * 2) + trans_lo; 
-            trans_la = (dyn_f * inputs.g_cornering * inputs.cg_height) / inputs.track_front;
-            mass_corner = (dyn_f / 2) + trans_la;
-        } else {
-            const susp_r = suspended * (1 - inputs.weight_dist_front);
-            const static_r = (susp_r / 2) + inputs.unsprung_r;
-            trans_lo = (total_m * inputs.g_accel * inputs.cg_height) / inputs.wheelbase;
-            const dyn_r = (static_r * 2) + trans_lo;
-            trans_la = (dyn_r * inputs.g_cornering * inputs.cg_height) / inputs.track_front;
-            mass_corner = (dyn_r / 2) + trans_la;
-        }
-
-        const Fz = mass_corner * g * inputs.g_bump;
-        let Fx = Math.min(mass_corner * g * (axleType==='front' ? inputs.g_braking : inputs.g_accel), Fz * inputs.mu_long);
-        if(axleType === 'front') Fx *= -1; 
-        
-        const Fy = Math.min(mass_corner * g * inputs.g_cornering, Fz * inputs.mu_lat);
-        const F_g = [Fx, Fy, Fz];
-
-        const cp_eff = [tc[0] - (data.p_trail_mm / 1000), tc[1], 0.0];
-        const r_ground = sub(cp_eff, tc);
-        const M_g = cross(r_ground, F_g);
-
-        let trqRem = 0; 
-        if(axleType === 'rear'){ trqRem = M_g[1]; M_g[1] = 0; }
-
-        const rl = sub(data.lwb_u, tc);
-        const ru = sub(data.uwb_u, tc);
-        const rp = sub(data.push_u, tc);
-        const rt = sub(data.tie_u, tc);
-
-        const ml_f = cross(rl, vl_f);
-        const ml_r = cross(rl, vl_r);
-        const mu_f = cross(ru, vu_f);
-        const mu_r = cross(ru, vu_r);
-        const mp = cross(rp, vp);
-        const mt = cross(rt, vt);
-
-        const A = [
-            [vl_f[0], vl_r[0], vu_f[0], vu_r[0], vp[0], vt[0]],
-            [vl_f[1], vl_r[1], vu_f[1], vu_r[1], vp[1], vt[1]],
-            [vl_f[2], vl_r[2], vu_f[2], vu_r[2], vp[2], vt[2]],
-            [ml_f[0], ml_r[0], mu_f[0], mu_r[0], mp[0], mt[0]],
-            [ml_f[1], ml_r[1], mu_f[1], mu_r[1], mp[1], mt[1]],
-            [ml_f[2], ml_r[2], mu_f[2], mu_r[2], mp[2], mt[2]]
-        ];
-        const B = [-F_g[0], -F_g[1], -F_g[2], -M_g[0], -M_g[1], -M_g[2]];
-        
-        let res = [0,0,0,0,0,0]; 
-        try { 
-            res = solveLinearSystem(A, B); 
-        } catch(e) { 
-            console.error("Error en solver:", e); 
-        }
-
-        return { 
-            forces: res.map(f => -f), 
-            loads: { Fx, Fy, Fz, Mz: M_g[2] }, 
-            geo: data, 
-            trqRem 
-        };
-    }
-
-    // ==========================================
-    // 4. GENERACIÓN DE REPORTE FEA (CODIGO ORIGINAL V5)
-    // ==========================================
-    function generateFEAReport(res, inputVals) {
-        const geo = res.geo;
-        const loads = res.loads;
-        const forces = res.forces; 
-        
-        const brkTorque = inputVals.fea_brake_torque;
-        const radiusM = inputVals.fea_mount_radius / 1000;
-        const ears = inputVals.fea_ears;
-        
-        const fTotal = brkTorque / radiusM;
-        const fEar = fTotal / ears;
-
-        const linkDefs = [
-            { name: "LWB Front Point", pChas: geo.lwb_f, pUprt: geo.lwb_u, force: forces[0] },
-            { name: "LWB Rear Point",  pChas: geo.lwb_r, pUprt: geo.lwb_u, force: forces[1] },
-            { name: "UWB Front Point", pChas: geo.uwb_f, pUprt: geo.uwb_u, force: forces[2] },
-            { name: "UWB Rear Point",  pChas: geo.uwb_r, pUprt: geo.uwb_u, force: forces[3] },
-            { name: "Pushrod Mount",   pChas: geo.push_c, pUprt: geo.push_u, force: forces[4] },
-            { name: "Tie Rod Mount",   pChas: geo.tie_c,  pUprt: geo.tie_u,  force: forces[5] }
-        ];
-
-        let html = `
-        <h3 style="color: var(--fea); border-bottom: 2px solid var(--fea); margin-top: 35px; text-align: center; letter-spacing: 1px;">
-            ANALISIS DE ESFUERZOS PARA FEA (PORTAMAZAS)
-        </h3>`;
-
-        html += `
-        <div class="result-block" style="border-top: 4px solid var(--fea); margin-top: 15px;">
-            <h3>1. CARGAS DE FRENADO (Caliper)</h3>
-            <table>
-                <tr><th>Parámetro</th><th>Valor</th></tr>
-                <tr><td>Torque Frenado</td><td>${brkTorque.toFixed(1)} Nm</td></tr>
-                <tr><td>Radio Montaje</td><td>${(radiusM * 1000).toFixed(1)} mm</td></tr>
-                <tr><td>Fuerza Total (Tangencial)</td><td style="color:#ff9f43; font-weight:bold;">${fTotal.toFixed(1)} N</td></tr>
-                <tr><td>Fuerza POR OREJA</td><td style="color:#ff9f43; font-weight:bold;">${fEar.toFixed(1)} N</td></tr>
-            </table>
-            <div class="note" style="color:#aaa; margin-top:5px;">* Nota: La fuerza es tangente al disco (eje Z si caliper a las 3/9 o'clock).</div>
-        </div>`;
-
-        html += `
-        <div class="result-block">
-            <h3>2. FUERZAS EN HARDPOINTS (Vectores)</h3>
-            <table>
-                <tr>
-                    <th>Punto (Hardpoint)</th>
-                    <th>Mag (N)</th>
-                    <th>Vector [Fx, Fy, Fz]</th>
-                </tr>`;
-
-        linkDefs.forEach(link => {
-            const vRaw = sub(link.pChas, link.pUprt);
-            const vUnit = normalize(vRaw);
-            const fx = vUnit[0] * link.force;
-            const fy = vUnit[1] * link.force;
-            const fz = vUnit[2] * link.force;
-            const color = link.force < 0 ? col('color_comp') : col('color_tens');
-
-            html += `
-                <tr>
-                    <td>${link.name}</td>
-                    <td style="color:${color}; font-weight:bold;">${link.force.toFixed(0)}</td>
-                    <td class="vector-cell">[${fx.toFixed(0)}, ${fy.toFixed(0)}, ${fz.toFixed(0)}]</td>
-                </tr>`;
-        });
-        html += `</table></div>`;
-
-        html += `
-        <div class="result-block">
-            <h3>3. REACCIÓN EN RODAMIENTO (Hub)</h3>
-            <table>
-                <tr><th>Eje</th><th>Fuerza (N)</th><th>Momento (Nm)</th></tr>
-                <tr><td>X (Longitudinal)</td><td>${loads.Fx.toFixed(0)}</td><td>${(loads.Fz * (inputVals.wheel_offset/1000)).toFixed(1)} (Aprox Camber)</td></tr>
-                <tr><td>Y (Lateral)</td><td>${loads.Fy.toFixed(0)}</td><td>0.0</td></tr>
-                <tr><td>Z (Vertical)</td><td>${loads.Fz.toFixed(0)}</td><td>${loads.Mz.toFixed(1)} (Align Tq)</td></tr>
-            </table>
-            <div class="note" style="color:#aaa;">* Fuerzas del suelo trasladadas al centro del rodamiento.</div>
-        </div>`;
-
-        return html;
-    }
-
-    // ==========================================
-    // 5. VISUALIZACIÓN 3D (CODIGO ORIGINAL V5)
-    // ==========================================
-    function createRealisticWheelV5(center, tireDims, offset, upLow, upUpp, opacity) {
-        const traces = [];
-        const rTire = tireDims.tire_od/2000;
-        const rRim = tireDims.rim_od/2000;
-        const w = tireDims.tire_width/1000;
-        const off = offset/1000;
-        
-        const kp = sub(upUpp, upLow);
-        const camber = -Math.atan2(kp[1], kp[2]);
-        const rot = (y, z) => [y * Math.cos(camber) - z * Math.sin(camber), y * Math.sin(camber) + z * Math.cos(camber)];
-
-        const makeSurf = (radFn, widFn, co, met, name, yDom = [0, 1]) => {
-            const th = [], y = [], xs = [], ys = [], zs = [], st = 36, wst = 8;
-            for (let i = 0; i <= st; i++) th.push((i/st)*2*Math.PI);
-            for (let i = 0; i <= wst; i++) y.push(yDom[0] + (i/wst)*(yDom[1] - yDom[0]));
+        // --- FUNCIONES DE RENDERIZADO ---
+        function renderActiveSession(data, id) {
+            viewCheckin.style.display = 'none';
+            viewCheckout.style.display = 'block';
+            document.getElementById('displayWorkerName').innerText = data.name;
+            document.getElementById('activeDocId').value = id;
+            document.getElementById('displayStartNote').innerText = data.startNote ? `Nota de ingreso: "${data.startNote}"` : "Sin nota de ingreso.";
             
-            for (let i = 0; i < y.length; i++) {
-                let rX=[], rY=[], rZ=[], cY=widFn(y[i]), cR=radFn(y[i]);
-                for (let j=0; j<th.length; j++) {
-                    const [ry, rz] = rot(cY, cR*Math.sin(th[j]));
-                    rX.push(center[0]+cR*Math.cos(th[j])); 
-                    rY.push(center[1]+ry); 
-                    rZ.push(center[2]+rz);
-                }
-                xs.push(rX); ys.push(rY); zs.push(rZ);
+            let timeStr = "Cargando hora...";
+            if(data.startTime) {
+                // Aseguramos formato de 2 dígitos para minutos y hora
+                timeStr = data.startTime.toDate().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hour12: false}) + " hs";
             }
-            return { 
-                type: 'surface', x: xs, y: ys, z: zs, 
-                colorscale: [[0, co], [1, co]], showscale: false, 
-                lighting: {ambient:0.4, diffuse:0.8, specular:met?1.5:0.05, roughness:met?0.3:0.9}, 
-                name, hoverinfo: 'skip', opacity 
-            };
-        };
-
-        const twRatio = 0.85, crownDrop = 0.008;
-        const treadR = (t) => rTire - crownDrop * Math.pow(2*(t-0.5), 2);
-        const treadY = (t) => w*(t-0.5)*twRatio;
-        traces.push(makeSurf(treadR, treadY, '#1a1a1a', false, 'Banda Rodadura'));
-
-        const makeCurvedSW = (side, name) => {
-            const swR = (t) => rRim + (rTire - crownDrop - rRim) * Math.sin(t*Math.PI/2);
-            const swY = (t) => (side * w / 2) * (1 - twRatio * Math.cos(t*Math.PI/2));
-            return makeSurf(swR, swY, '#222222', false, name);
-        }
-        traces.push(makeCurvedSW(-1, 'Sidewall Out')); 
-        traces.push(makeCurvedSW(1, 'Sidewall In'));
-        
-        const rimR = (t) => rRim, rimY = (t) => w*(t-0.5);
-        traces.push(makeSurf(rimR, rimY, '#999999', true, 'Barril Llanta'));
-        
-        const hubR = 0.04, faceR = (t) => hubR*(1-t) + rRim*t, faceY = (t) => off;
-        traces.push(makeSurf(faceR, faceY, '#a0a0a0', true, 'Cara Llanta'));
-        
-        return traces;
-    }
-
-    function mirrorY(p) { return [p[0], -p[1], p[2]]; }
-
-    function generateTraces(res, xOff, td, off, co, lbl, tireOp) {
-        const g = res.geo, f = res.forces;
-        const pos = (p) => [p[0] + xOff, p[1], p[2]];
-        
-        const links = [
-            { n: "LWB F", f: f[0], p1: g.lwb_f, p2: g.lwb_u },
-            { n: "LWB R", f: f[1], p1: g.lwb_r, p2: g.lwb_u },
-            { n: "UWB F", f: f[2], p1: g.uwb_f, p2: g.uwb_u },
-            { n: "UWB R", f: f[3], p1: g.uwb_r, p2: g.uwb_u },
-            { n: "Pushrod", f: f[4], p1: g.push_c, p2: g.push_u },
-            { n: (lbl.includes('Front')||lbl.includes('F')) ? "Tie Rod" : "Toe Link", f: f[5], p1: g.tie_c, p2: g.tie_u }
-        ];
-
-        const traces = links.map(l => {
-            const p1 = pos(l.p1), p2 = pos(l.p2), absF = Math.abs(l.f);
-            return {
-                type: 'scatter3d', mode: 'lines+markers',
-                x: [p1[0], p2[0]], y: [p1[1], p2[1]], z: [p1[2], p2[2]],
-                line: { color: l.f < 0 ? co.comp : co.tens, width: Math.max(4, Math.min(14, absF / 1000)) },
-                marker: { size: 3, color: '#222' },
-                name: `${lbl} ${l.n}`, hoverinfo: 'text', text: `${l.n}: ${l.f.toFixed(0)} N`, opacity: 1.0
-            };
-        });
-        
-        traces.push({ 
-            type: 'scatter3d', mode: 'markers', 
-            x: [pos(g.tire_center)[0]], y: [pos(g.tire_center)[1]], z: [0], 
-            marker: { symbol: 'cross', size: 5, color: '#333' }, 
-            name: 'Suelo', hoverinfo: 'skip', opacity: 1.0 
-        });
-        
-        const wheel = createRealisticWheelV5(pos(g.tire_center), td, off, pos(g.lwb_u), pos(g.uwb_u), tireOp);
-        wheel.forEach(t => t.name = lbl + ' ' + t.name);
-        return [...traces, ...wheel];
-    }
-
-    function generateMirroredTraces(res, xOff, td, off, co, lbl, op) {
-        const gM = {};
-        for (const k in res.geo) gM[k] = typeof res.geo[k] === 'object' ? mirrorY(res.geo[k]) : res.geo[k];
-        return generateTraces({ geo: gM, forces: res.forces }, xOff, td, -off, co, lbl, op);
-    }
-
-    function generateChassis(gf, gr, wb) {
-        const line = (p1, p2) => ({ 
-            type: 'scatter3d', mode: 'lines', 
-            x: [p1[0], p2[0]], y: [p1[1], p2[1]], z: [p1[2], p2[2]], 
-            line: { color: '#7f8c8d', width: 3 }, hoverinfo: 'skip' 
-        });
-        
-        const pF = (p) => [p[0] + wb, p[1], p[2]];
-        const pR = (p) => [p[0], p[1], p[2]];
-        const tr = [];
-        
-        tr.push(line(pF(gf.lwb_f), pF(gf.lwb_r))); 
-        tr.push(line(pR(gr.lwb_f), pR(gr.lwb_r))); 
-        tr.push(line(pF(gf.lwb_r), pR(gr.lwb_f))); 
-        tr.push(line(mirrorY(pF(gf.lwb_r)), mirrorY(pR(gr.lwb_f)))); 
-        tr.push(line(pF(gf.uwb_f), pF(gf.uwb_r))); 
-        tr.push(line(pR(gr.uwb_f), pR(gr.uwb_r))); 
-        tr.push(line(pF(gf.uwb_r), pR(gr.uwb_f))); 
-        tr.push(line(mirrorY(pF(gf.uwb_r)), mirrorY(pR(gr.uwb_f)))); 
-        
-        return tr;
-    }
-
-    // ==========================================
-    // 6. MAIN CONTROLLER (CODIGO ORIGINAL V5)
-    // ==========================================
-    function calculateAndPlot() {
-        const inputs = {
-            g_braking: val('g_braking'), g_accel: val('g_accel'), g_cornering: val('g_cornering'), g_bump: val('g_bump'),
-            mu_long: val('mu_long'), mu_lat: val('mu_lat'),
-            wheelbase: val('wheelbase')/1000, track_front: val('track_front')/1000, cg_height: val('cg_height')/1000,
-            m_total: val('m_total'), weight_dist_front: val('weight_dist_front'),
-            unsprung_f: val('unsprung_f'), unsprung_r: val('unsprung_r'),
-            fea_brake_torque: val('fea_brake_torque'), fea_mount_radius: val('fea_mount_radius'), fea_ears: val('fea_ears'),
-            wheel_offset: val('wheel_offset')
-        };
-
-        const tireDims = getTireDims();
-        const offset = val('wheel_offset');
-        const colors = { comp: col('color_comp'), tens: col('color_tens') };
-        const viewMode = document.getElementById('viewMode').value;
-        const tireOpacity = document.getElementById('transparent_tires').checked ? 0.3 : 1.0;
-
-        let plots = [], html = "";
-        const resF = calculateAxle('front', vehicleData.front, inputs);
-        const resR = calculateAxle('rear', vehicleData.rear, inputs);
-        const wb = inputs.wheelbase;
-
-        if (viewMode === 'full') {
-            plots = plots.concat(generateChassis(vehicleData.front, vehicleData.rear, wb));
-            plots = plots.concat(generateTraces(resF, wb, tireDims, offset, colors, "FL", tireOpacity), generateTraces(resR, 0, tireDims, offset, colors, "RL", tireOpacity));
-            plots = plots.concat(generateMirroredTraces(resF, wb, tireDims, offset, colors, "FR", tireOpacity), generateMirroredTraces(resR, 0, tireDims, offset, colors, "RR", tireOpacity));
-            html += generateTable("DELANTERA (Por Lado)", resF, 'front') + generateTable("TRASERA (Por Lado)", resR, 'rear');
-        } else if (viewMode === 'both') {
-            plots = plots.concat(generateTraces(resF, wb, tireDims, offset, colors, "Front", tireOpacity), generateTraces(resR, 0, tireDims, offset, colors, "Rear", tireOpacity));
-            html += generateTable("SUSP. DELANTERA", resF, 'front') + generateTable("SUSP. TRASERA", resR, 'rear');
-        } else if (viewMode === 'front') {
-            plots = plots.concat(generateTraces(resF, 0, tireDims, offset, colors, "Front", tireOpacity));
-            html += generateTable("SUSP. DELANTERA", resF, 'front');
-        } else if (viewMode === 'rear') {
-            plots = plots.concat(generateTraces(resR, 0, tireDims, offset, colors, "Rear", tireOpacity));
-            html += generateTable("SUSP. TRASERA", resR, 'rear');
+            document.getElementById('displayStartTime').innerText = timeStr;
+            footer.className = "status-footer status-busy";
+            footer.innerHTML = `<i class="fa-solid fa-lock"></i> OCUPADO POR ${data.name.split(' ')[0]}`; // Muestra solo el primer nombre en el footer
         }
 
-        if (viewMode !== 'front') html += calcPowertrain(resR.loads.Fx, tireDims.tire_od);
-
-        document.getElementById('results-output').innerHTML = html;
-
-        // --- INYECCIÓN DEL REPORTE FEA (FORMATEADO) ---
-        const feaDiv = document.getElementById('fea-report-container');
-        if(viewMode === 'front') {
-            feaDiv.innerHTML = generateFEAReport(resF, inputs);
-        } else {
-            feaDiv.innerHTML = "";
+        function renderFreeState() {
+            viewCheckin.style.display = 'block';
+            viewCheckout.style.display = 'none';
+            document.getElementById('inputName').value = "";
+            document.getElementById('inputStartNote').value = "";
+            document.getElementById('inputEndNote').value = "";
+            footer.className = "status-footer status-free";
+            footer.innerHTML = `<i class="fa-solid fa-check-circle"></i> TALLER LIBRE - INGRESO HABILITADO`;
         }
 
-        const layout = {
-            margin: { l: 0, r: 0, b: 0, t: 0 },
-            paper_bgcolor: '#dae3e7', plot_bgcolor: '#dae3e7',
-            scene: {
-                aspectmode: "data",
-                xaxis: { title: 'X (Adelante+)', backgroundcolor: '#d0dce0' },
-                yaxis: { title: 'Y', backgroundcolor: '#d0dce0' },
-                zaxis: { title: 'Z', backgroundcolor: '#e0e8ec' },
-                camera: { eye: { x: 2.0, y: -2.0, z: 1.2 }, up: { x: 0, y: 0, z: 1 }, center: { x: 0, y: 0, z: -0.3 } },
-                dragmode: 'orbit'
-            },
-            showlegend: true, legend: { x: 0, y: 1, bgcolor: 'rgba(255,255,255,0.5)' }
-        };
+        function renderHistoryItem(data) {
+            const list = document.getElementById('historyList');
+            const start = data.startTime ? data.startTime.toDate() : new Date();
+            const end = data.endTime ? data.endTime.toDate() : new Date();
+            
+            const dateStr = start.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit'});
+            const timeIn = start.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hour12:false});
+            const timeOut = end.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hour12:false});
 
-        Plotly.react('plot3d', plots, layout, { displayModeBar: true });
-    }
+            const diffMs = end - start;
+            const diffHrs = Math.floor(diffMs / 3600000);
+            const diffMins = Math.round(((diffMs % 3600000) / 60000));
 
-    function generateTable(title, res, type) {
-        const names = type === 'front' ? ["LWB Front", "LWB Rear", "UWB Front", "UWB Rear", "Pushrod", "Tie Rod"] : ["LWB Front", "LWB Rear", "UWB Front", "UWB Rear", "Pushrod", "Toe Link"];
-        const linkKeys = [['lwb_f', 'lwb_u'], ['lwb_r', 'lwb_u'], ['uwb_f', 'uwb_u'], ['uwb_r', 'uwb_u'], ['push_c', 'push_u'], ['tie_c', 'tie_u']];
-        const yieldS = val('mat_yield'), E = val('mat_E') * 1e9, od = val('tube_od') / 1000, id = val('tube_id') / 1000, sf = val('sf_target');
-        const area = (Math.PI / 4) * (od**2 - id**2);
-        const I = (Math.PI / 64) * (od**4 - id**4);
+            const li = document.createElement('li');
+            li.className = 'log-item';
+            li.innerHTML = `
+                <div class="log-header">
+                    <span>${data.name}</span> 
+                    <span style="font-size:0.8rem; font-weight:normal; color:#888; background:#2d2d2d; padding:2px 6px; border-radius:4px;">Letra ${diffHrs}h ${diffMins}m</span>
+                </div>
+                <div class="log-line">
+                    <span class="highlight-in"><i class="fa-solid fa-caret-right"></i> INGRESO: ${dateStr} - ${timeIn}hs</span>
+                    ${data.startNote ? `<span class="log-note">${data.startNote}</span>` : ''}
+                </div>
+                <div class="log-line" style="margin-top:8px;">
+                    <span class="highlight-out"><i class="fa-solid fa-caret-left"></i> EGRESO: ${dateStr} - ${timeOut}hs</span>
+                    ${data.endNote ? `<span class="log-note">${data.endNote}</span>` : '<span class="log-note" style="color:#555;">Sin nota de egreso.</span>'}
+                </div>
+            `;
+            list.appendChild(li);
+        }
 
-        let html = `<div class="result-block"><h3>${title}</h3><table><tr><th>Barra</th><th>Fuerza</th><th>MPa</th><th>FS Y</th><th>FS B</th></tr>`;
-
-        res.forces.forEach((f, i) => {
-            const stress = (Math.abs(f) / area) / 1e6;
-            const fsY = yieldS / stress;
-            let fsB = "-", bc = "";
-
-            if (f < 0) { 
-                const k1 = linkKeys[i][0], k2 = linkKeys[i][1];
-                const p1 = res.geo[k1], p2 = res.geo[k2];
-                if (p1 && p2) {
-                    const L = norm(sub(p1, p2));
-                    const Pcr = (Math.PI**2 * E * I) / (L**2);
-                    const fb = Pcr / Math.abs(f);
-                    fsB = fb.toFixed(1);
-                    if (fb < sf) bc = fb < 1 ? "danger" : "warning";
-                }
-            }
-            html += `<tr><td>${names[i]}</td><td style="font-weight:bold; color:${f < 0 ? col('color_comp') : col('color_tens')}">${f.toFixed(0)}</td><td>${stress.toFixed(1)}</td><td class="${fsY < sf ? "warning" : "ok"}">${fsY.toFixed(1)}</td><td class="${bc}">${fsB}</td></tr>`;
-        });
-        return html + `</table><div class="result-footer">Cargas Parche (Por Rueda): Fx=${res.loads.Fx.toFixed(0)}, Fy=${res.loads.Fy.toFixed(0)}, Fz=${res.loads.Fz.toFixed(0)}</div></div><br>`;
-    }
-
-    function calcPowertrain(Fx, tOD) {
-        const T_e = val('eng_torque'), gr = val('gear_ratio'), ef = val('drivetrain_eff');
-        const pod = val('palier_od') / 1000, pid = val('palier_id') / 1000, rT = tOD / 2000;
-        const T_w = T_e * gr * ef;
-        const T_g = Fx * rT;
-        const T_d = Math.min(T_w, T_g);
-        const Sy_tensile = val('palier_sy');
-        const Sy_shear = Sy_tensile * 0.577;
-        const J = (Math.PI / 32) * (pod**4 - pid**4);
-        const tau = (T_d * pod / 2) / J / 1e6;
-        const fs = Sy_shear / tau;
-        return `<div class="result-block" style="border-top:4px solid #fca311"><h3>TREN DE POTENCIA</h3><table><tr><th>Item</th><th>Valor</th></tr><tr><td>Torque Diseño</td><td>${T_d.toFixed(1)} Nm</td></tr><tr><td>Sy Corte (Est)</td><td>${Sy_shear.toFixed(1)} MPa</td></tr><tr><td>FS Torsión</td><td class="${fs < 3.5 ? "warning" : "ok"}"><strong>${fs.toFixed(2)}</strong></td></tr></table></div>`;
-    }
-
-    // Inicialización automática
-    switchTab('front'); 
-    renderInputs(); 
-    setTimeout(calculateAndPlot, 800);
-</script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if(tabId === 'presence') document.getElementById('btn-presence').classList.add('active');
+            if(tabId === 'history') document.getElementById('btn-history').classList.add('active');
+            window.scrollTo(0,0); // Subir al inicio al cambiar pestaña
+        }
+    </script>
 </body>
 </html>
